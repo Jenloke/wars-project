@@ -1,0 +1,24 @@
+{
+  "name": "tactics-game",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.14.0",
+  "scripts": {
+    "dev": "pnpm --filter @tactics/sprites build && pnpm --filter @tactics/web dev",
+    "build": "pnpm --filter @tactics/sprites build && pnpm --filter @tactics/web build",
+    "sprites": "pnpm --filter @tactics/sprites build",
+    "test": "vitest run",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.0",
+    "typescript-eslint": "^8.72.2",
+    "vitest": "^5.1.0"
+  }
+}

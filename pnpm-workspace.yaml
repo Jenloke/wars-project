@@ -1,0 +1,8 @@
+packages:
+  - packages/*
+  - apps/*
+minimumReleaseAgeExclude:
+  - vite@8.3.8
+# esbuild's install script only verifies its binary; it is not needed to run.
+allowBuilds:
+  esbuild: false
