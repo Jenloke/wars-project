@@ -7,6 +7,7 @@ export * from './pathfinding';
 export * from './combat';
 export * from './options';
 export * from './createGame';
+export * from './hash';
 export type { PlayerController } from './controller';
 export { applyAction, replay } from './applyAction';
 export { rngAdvance, rngInt } from './rng';
