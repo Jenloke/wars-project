@@ -5,6 +5,7 @@ import {
   maps,
   MapRegistry,
   ruleset,
+  terrainVisuals,
   TWIN_FORDS_ASCII,
   twinFords,
   validateMap,
@@ -41,6 +42,10 @@ describe('ruleset', () => {
       const hasPrimary = row.some((value) => value !== NO_DAMAGE);
       if (hasPrimary) expect(compiled.units[attacker]!.maxAmmo).toBeGreaterThan(0);
     }
+  });
+
+  it('has a visual for every terrain type', () => {
+    for (const def of ruleset.terrain) expect(terrainVisuals[def.id]).toBeDefined();
   });
 });
 

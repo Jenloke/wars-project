@@ -41,3 +41,13 @@ export {
 } from './maps/ascii';
 export { TWIN_FORDS_ASCII, twinFords } from './maps/twinFords';
 export { mapSchema, rulesetSchema } from './schemas';
+export {
+  MASK_EAST,
+  MASK_NORTH,
+  MASK_SOUTH,
+  MASK_WEST,
+  terrainVisuals,
+  unitSpriteId,
+  type AutotileRule,
+  type TerrainVisual,
+} from './visuals';
