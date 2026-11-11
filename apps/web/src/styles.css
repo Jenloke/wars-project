@@ -1,0 +1,338 @@
+:root {
+  --bg: #141c26;
+  --panel: #1d2836;
+  --panel-raised: #263445;
+  --border: #34465c;
+  --text: #e8edf3;
+  --muted: #8494a8;
+  --accent: #ffd23f;
+  --accent-text: #1d1f26;
+  --danger: #ff5a4a;
+  --panel-width: 240px;
+  --bar-height: 52px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font:
+    14px/1.4 system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--panel-raised);
+  border-radius: 6px;
+  padding: 6px 12px;
+  min-height: 36px;
+}
+
+button:hover:not(:disabled),
+button:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* Layout: bar on top, map filling the rest, info panel docked right. */
+.app {
+  display: grid;
+  height: 100%;
+  grid-template:
+    'bar bar' var(--bar-height)
+    'board panel' minmax(0, 1fr)
+    / minmax(0, 1fr) var(--panel-width);
+}
+
+.top-bar {
+  grid-area: bar;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.turn-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  white-space: nowrap;
+}
+
+.day,
+.funds {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.faction {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.faction-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.hint {
+  flex: 1;
+  margin: 0;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.controls {
+  display: flex;
+  gap: 6px;
+}
+
+.board {
+  grid-area: board;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+}
+
+.game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.load-error {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--danger);
+}
+
+.info-panel {
+  grid-area: panel;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.info-card {
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.info-card h2 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.info-card dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  margin: 0;
+}
+
+.info-card dt {
+  color: var(--muted);
+}
+
+.info-card dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.info-empty h2 {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.damage-preview {
+  border-color: var(--danger);
+}
+
+.menu {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 170px;
+  max-height: calc(100% - 16px);
+  overflow-y: auto;
+  padding: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+}
+
+.menu-title {
+  padding: 0 4px 2px;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  text-align: left;
+}
+
+.menu-item:focus-visible {
+  background: var(--border);
+}
+
+.menu-detail {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.menu-cancel {
+  color: var(--muted);
+}
+
+.turn-banner {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  z-index: 1;
+  padding: 8px 20px;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: banner 1.6s ease-out forwards;
+}
+
+@keyframes banner {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+  15%,
+  70% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 0);
+  }
+}
+
+.game-over {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  background: rgb(10 14 20 / 70%);
+}
+
+.game-over-card {
+  padding: 28px 36px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  text-align: center;
+}
+
+.game-over-card h1 {
+  margin: 0 0 8px;
+}
+
+/* Tablet and narrower: the info panel moves below the map, cards side by side. */
+@media (max-width: 900px) {
+  .app {
+    grid-template:
+      'bar' var(--bar-height)
+      'board' minmax(0, 1fr)
+      'panel' auto
+      / minmax(0, 1fr);
+  }
+
+  .info-panel {
+    flex-direction: row;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  .info-card {
+    flex: 1 0 150px;
+  }
+
+  .hint {
+    display: none;
+  }
+
+  .turn-info {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turn-banner {
+    animation-duration: 0.01s;
+  }
+}
