@@ -1,307 +1,493 @@
 {
   "cell": 48,
   "columns": 24,
-  "rows": 7,
+  "rows": 8,
   "teamStride": 1,
   "variants": 5,
   "sprites": {
-    "terrain.bridge.h": {
+    "fx.puff": {
       "col": 0,
+      "row": 0,
+      "frames": 3,
+      "team": false
+    },
+    "terrain.bridge.h": {
+      "col": 3,
       "row": 0,
       "frames": 1,
       "team": false
     },
     "terrain.bridge.v": {
-      "col": 1,
+      "col": 4,
       "row": 0,
       "frames": 1,
       "team": false
     },
     "terrain.coast.1": {
-      "col": 2,
+      "col": 5,
       "row": 0,
       "frames": 1,
       "team": false
     },
     "terrain.coast.10": {
-      "col": 3,
+      "col": 6,
       "row": 0,
       "frames": 1,
       "team": false
     },
     "terrain.coast.11": {
-      "col": 4,
+      "col": 7,
       "row": 0,
       "frames": 1,
       "team": false
     },
     "terrain.coast.12": {
-      "col": 5,
+      "col": 8,
       "row": 0,
       "frames": 1,
       "team": false
     },
     "terrain.coast.13": {
-      "col": 6,
+      "col": 9,
       "row": 0,
       "frames": 1,
       "team": false
     },
     "terrain.coast.14": {
-      "col": 7,
+      "col": 10,
       "row": 0,
       "frames": 1,
       "team": false
     },
     "terrain.coast.15": {
-      "col": 8,
+      "col": 11,
       "row": 0,
       "frames": 1,
       "team": false
     },
     "terrain.coast.2": {
-      "col": 9,
+      "col": 12,
       "row": 0,
       "frames": 1,
       "team": false
     },
     "terrain.coast.3": {
-      "col": 10,
+      "col": 13,
       "row": 0,
       "frames": 1,
       "team": false
     },
     "terrain.coast.4": {
-      "col": 11,
-      "row": 0,
-      "frames": 1,
-      "team": false
-    },
-    "terrain.coast.5": {
-      "col": 12,
-      "row": 0,
-      "frames": 1,
-      "team": false
-    },
-    "terrain.coast.6": {
-      "col": 13,
-      "row": 0,
-      "frames": 1,
-      "team": false
-    },
-    "terrain.coast.7": {
       "col": 14,
       "row": 0,
       "frames": 1,
       "team": false
     },
-    "terrain.coast.8": {
+    "terrain.coast.5": {
       "col": 15,
       "row": 0,
       "frames": 1,
       "team": false
     },
-    "terrain.coast.9": {
+    "terrain.coast.6": {
       "col": 16,
       "row": 0,
       "frames": 1,
       "team": false
     },
-    "terrain.forest": {
+    "terrain.coast.7": {
       "col": 17,
       "row": 0,
       "frames": 1,
       "team": false
     },
-    "terrain.mountain": {
+    "terrain.coast.8": {
       "col": 18,
       "row": 0,
       "frames": 1,
       "team": false
     },
-    "terrain.plains": {
+    "terrain.coast.9": {
       "col": 19,
       "row": 0,
       "frames": 1,
       "team": false
     },
-    "terrain.road.0": {
+    "terrain.forest": {
       "col": 20,
       "row": 0,
       "frames": 1,
       "team": false
     },
-    "terrain.road.1": {
+    "terrain.mountain": {
       "col": 21,
       "row": 0,
       "frames": 1,
       "team": false
     },
-    "terrain.road.10": {
+    "terrain.plains": {
       "col": 22,
       "row": 0,
       "frames": 1,
       "team": false
     },
-    "terrain.road.11": {
+    "terrain.road.0": {
       "col": 23,
       "row": 0,
       "frames": 1,
       "team": false
     },
-    "terrain.road.12": {
+    "terrain.road.1": {
       "col": 0,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.10": {
+      "col": 1,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.11": {
+      "col": 2,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.12": {
+      "col": 3,
       "row": 1,
       "frames": 1,
       "team": false
     },
     "terrain.road.13": {
-      "col": 1,
-      "row": 1,
-      "frames": 1,
-      "team": false
-    },
-    "terrain.road.14": {
-      "col": 2,
-      "row": 1,
-      "frames": 1,
-      "team": false
-    },
-    "terrain.road.15": {
-      "col": 3,
-      "row": 1,
-      "frames": 1,
-      "team": false
-    },
-    "terrain.road.2": {
       "col": 4,
       "row": 1,
       "frames": 1,
       "team": false
     },
-    "terrain.road.3": {
+    "terrain.road.14": {
       "col": 5,
       "row": 1,
       "frames": 1,
       "team": false
     },
-    "terrain.road.4": {
+    "terrain.road.15": {
       "col": 6,
       "row": 1,
       "frames": 1,
       "team": false
     },
-    "terrain.road.5": {
+    "terrain.road.2": {
       "col": 7,
       "row": 1,
       "frames": 1,
       "team": false
     },
-    "terrain.road.6": {
+    "terrain.road.3": {
       "col": 8,
       "row": 1,
       "frames": 1,
       "team": false
     },
-    "terrain.road.7": {
+    "terrain.road.4": {
       "col": 9,
       "row": 1,
       "frames": 1,
       "team": false
     },
-    "terrain.road.8": {
+    "terrain.road.5": {
       "col": 10,
       "row": 1,
       "frames": 1,
       "team": false
     },
-    "terrain.road.9": {
+    "terrain.road.6": {
       "col": 11,
       "row": 1,
       "frames": 1,
       "team": false
     },
-    "terrain.sea": {
+    "terrain.road.7": {
       "col": 12,
       "row": 1,
       "frames": 1,
       "team": false
     },
-    "building.base": {
+    "terrain.road.8": {
+      "col": 13,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.9": {
+      "col": 14,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.sea": {
+      "col": 15,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "ui.attackTile": {
+      "col": 16,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "ui.cursor": {
+      "col": 17,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "ui.hp.1": {
+      "col": 18,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "ui.hp.2": {
+      "col": 19,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "ui.hp.3": {
+      "col": 20,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "ui.hp.4": {
+      "col": 21,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "ui.hp.5": {
+      "col": 22,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "ui.hp.6": {
+      "col": 23,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "ui.hp.7": {
       "col": 0,
       "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.hp.8": {
+      "col": 1,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.hp.9": {
+      "col": 2,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.iconAmmo": {
+      "col": 3,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.iconCapture": {
+      "col": 4,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.iconFuel": {
+      "col": 5,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.iconLoaded": {
+      "col": 6,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.moveTile": {
+      "col": 7,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.path.1": {
+      "col": 8,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.path.10": {
+      "col": 9,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.path.12": {
+      "col": 10,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.path.2": {
+      "col": 11,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.path.3": {
+      "col": 12,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.path.4": {
+      "col": 13,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.path.5": {
+      "col": 14,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.path.6": {
+      "col": 15,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.path.8": {
+      "col": 16,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.path.9": {
+      "col": 17,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.pathHead.1": {
+      "col": 18,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.pathHead.2": {
+      "col": 19,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.pathHead.4": {
+      "col": 20,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "ui.pathHead.8": {
+      "col": 21,
+      "row": 2,
+      "frames": 1,
+      "team": false
+    },
+    "building.base": {
+      "col": 0,
+      "row": 3,
       "frames": 1,
       "team": true
     },
     "building.city": {
       "col": 1,
-      "row": 2,
+      "row": 3,
       "frames": 1,
       "team": true
     },
     "building.hq": {
       "col": 2,
-      "row": 2,
+      "row": 3,
       "frames": 1,
       "team": true
     },
     "unit.antiAir": {
       "col": 3,
-      "row": 2,
+      "row": 3,
       "frames": 2,
       "team": true
     },
     "unit.apc": {
       "col": 5,
-      "row": 2,
+      "row": 3,
       "frames": 2,
       "team": true
     },
     "unit.artillery": {
       "col": 7,
-      "row": 2,
+      "row": 3,
       "frames": 2,
       "team": true
     },
     "unit.infantry": {
       "col": 9,
-      "row": 2,
+      "row": 3,
       "frames": 2,
       "team": true
     },
     "unit.mech": {
       "col": 11,
-      "row": 2,
+      "row": 3,
       "frames": 2,
       "team": true
     },
     "unit.mediumTank": {
       "col": 13,
-      "row": 2,
+      "row": 3,
       "frames": 2,
       "team": true
     },
     "unit.missiles": {
       "col": 15,
-      "row": 2,
+      "row": 3,
       "frames": 2,
       "team": true
     },
     "unit.recon": {
       "col": 17,
-      "row": 2,
+      "row": 3,
       "frames": 2,
       "team": true
     },
     "unit.rockets": {
       "col": 19,
-      "row": 2,
+      "row": 3,
       "frames": 2,
       "team": true
     },
     "unit.tank": {
       "col": 21,
-      "row": 2,
+      "row": 3,
       "frames": 2,
       "team": true
     }
