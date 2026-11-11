@@ -1,7 +1,11 @@
 import { applyAttack } from './actions/attack';
+import { applyBuild } from './actions/build';
 import { applyCapture } from './actions/capture';
 import type { ActionError } from './actions/common';
+import { applyJoin } from './actions/join';
 import { applyMove } from './actions/move';
+import { applySupply } from './actions/supply';
+import { applyLoad, applyUnload } from './actions/transport';
 import { advanceTurn, applyEndTurn, applyResign } from './actions/turn';
 import { createDraft, type Draft } from './draft';
 import type { CompiledRuleset } from './ruleset';
@@ -15,12 +19,24 @@ function dispatch(ruleset: CompiledRuleset, draft: Draft, action: Action): Actio
       return applyAttack(ruleset, draft, action);
     case 'Capture':
       return applyCapture(ruleset, draft, action);
+    case 'Join':
+      return applyJoin(ruleset, draft, action);
+    case 'Load':
+      return applyLoad(ruleset, draft, action);
+    case 'Unload':
+      return applyUnload(ruleset, draft, action);
+    case 'Supply':
+      return applySupply(ruleset, draft, action);
+    case 'Build':
+      return applyBuild(ruleset, draft, action);
     case 'EndTurn':
       return applyEndTurn(ruleset, draft);
     case 'Resign':
       return applyResign(ruleset, draft);
-    default:
-      return `${action.type} is not supported yet`;
+    default: {
+      const unknown: never = action;
+      return `Unknown action ${JSON.stringify(unknown)}`;
+    }
   }
 }
 
