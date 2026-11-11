@@ -244,6 +244,66 @@
       "row": 2,
       "frames": 1,
       "team": true
+    },
+    "unit.antiAir": {
+      "col": 3,
+      "row": 2,
+      "frames": 2,
+      "team": true
+    },
+    "unit.apc": {
+      "col": 5,
+      "row": 2,
+      "frames": 2,
+      "team": true
+    },
+    "unit.artillery": {
+      "col": 7,
+      "row": 2,
+      "frames": 2,
+      "team": true
+    },
+    "unit.infantry": {
+      "col": 9,
+      "row": 2,
+      "frames": 2,
+      "team": true
+    },
+    "unit.mech": {
+      "col": 11,
+      "row": 2,
+      "frames": 2,
+      "team": true
+    },
+    "unit.mediumTank": {
+      "col": 13,
+      "row": 2,
+      "frames": 2,
+      "team": true
+    },
+    "unit.missiles": {
+      "col": 15,
+      "row": 2,
+      "frames": 2,
+      "team": true
+    },
+    "unit.recon": {
+      "col": 17,
+      "row": 2,
+      "frames": 2,
+      "team": true
+    },
+    "unit.rockets": {
+      "col": 19,
+      "row": 2,
+      "frames": 2,
+      "team": true
+    },
+    "unit.tank": {
+      "col": 21,
+      "row": 2,
+      "frames": 2,
+      "team": true
     }
   }
 }
