@@ -1,8 +1,8 @@
 {
   "cell": 48,
   "columns": 24,
-  "rows": 2,
-  "teamStride": 0,
+  "rows": 7,
+  "teamStride": 1,
   "variants": 5,
   "sprites": {
     "terrain.bridge.h": {
@@ -226,6 +226,24 @@
       "row": 1,
       "frames": 1,
       "team": false
+    },
+    "building.base": {
+      "col": 0,
+      "row": 2,
+      "frames": 1,
+      "team": true
+    },
+    "building.city": {
+      "col": 1,
+      "row": 2,
+      "frames": 1,
+      "team": true
+    },
+    "building.hq": {
+      "col": 2,
+      "row": 2,
+      "frames": 1,
+      "team": true
     }
   }
 }
