@@ -1,0 +1,231 @@
+{
+  "cell": 48,
+  "columns": 24,
+  "rows": 2,
+  "teamStride": 0,
+  "variants": 5,
+  "sprites": {
+    "terrain.bridge.h": {
+      "col": 0,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.bridge.v": {
+      "col": 1,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.1": {
+      "col": 2,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.10": {
+      "col": 3,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.11": {
+      "col": 4,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.12": {
+      "col": 5,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.13": {
+      "col": 6,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.14": {
+      "col": 7,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.15": {
+      "col": 8,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.2": {
+      "col": 9,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.3": {
+      "col": 10,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.4": {
+      "col": 11,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.5": {
+      "col": 12,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.6": {
+      "col": 13,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.7": {
+      "col": 14,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.8": {
+      "col": 15,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.coast.9": {
+      "col": 16,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.forest": {
+      "col": 17,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.mountain": {
+      "col": 18,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.plains": {
+      "col": 19,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.0": {
+      "col": 20,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.1": {
+      "col": 21,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.10": {
+      "col": 22,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.11": {
+      "col": 23,
+      "row": 0,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.12": {
+      "col": 0,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.13": {
+      "col": 1,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.14": {
+      "col": 2,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.15": {
+      "col": 3,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.2": {
+      "col": 4,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.3": {
+      "col": 5,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.4": {
+      "col": 6,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.5": {
+      "col": 7,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.6": {
+      "col": 8,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.7": {
+      "col": 9,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.8": {
+      "col": 10,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.road.9": {
+      "col": 11,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    },
+    "terrain.sea": {
+      "col": 12,
+      "row": 1,
+      "frames": 1,
+      "team": false
+    }
+  }
+}
