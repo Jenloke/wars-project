@@ -1,3 +1,4 @@
+import { applyAttack } from './actions/attack';
 import type { ActionError } from './actions/common';
 import { applyMove } from './actions/move';
 import { advanceTurn, applyEndTurn, applyResign } from './actions/turn';
@@ -9,6 +10,8 @@ function dispatch(ruleset: CompiledRuleset, draft: Draft, action: Action): Actio
   switch (action.type) {
     case 'Move':
       return applyMove(ruleset, draft, action);
+    case 'Attack':
+      return applyAttack(ruleset, draft, action);
     case 'EndTurn':
       return applyEndTurn(ruleset, draft);
     case 'Resign':
