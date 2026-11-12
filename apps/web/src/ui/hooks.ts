@@ -25,6 +25,8 @@ export function useKeyboardControls(): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey || event.altKey) return;
+      // The modal dialog handles its own keys, including Escape.
+      if (useUiStore.getState().dialogOpen) return;
       const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;
 
       if (key === 'Escape' || key === 'x' || key === 'Backspace') {

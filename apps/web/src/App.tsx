@@ -1,4 +1,6 @@
+import { useUiStore } from './store/uiStore';
 import { GameCanvas } from './ui/GameCanvas';
+import { GameDialog } from './ui/GameDialog';
 import { useKeyboardControls } from './ui/hooks';
 import { InfoPanel } from './ui/InfoPanel';
 import { Menus } from './ui/Menus';
@@ -7,6 +9,7 @@ import { TopBar } from './ui/TopBar';
 
 export function App() {
   useKeyboardControls();
+  const dialogOpen = useUiStore((ui) => ui.dialogOpen);
   return (
     <div className="app">
       <TopBar />
@@ -17,6 +20,7 @@ export function App() {
       </main>
       <InfoPanel />
       <GameOver />
+      {dialogOpen && <GameDialog />}
     </div>
   );
 }

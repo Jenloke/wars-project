@@ -54,6 +54,15 @@ export function GameCanvas() {
       });
       markDirty();
     });
+    const unsubscribeReset = session.onReset(() => {
+      playback.stop();
+      const tiles = session.getState().terrain.length;
+      useUiStore.setState({
+        ...IDLE_SELECTION,
+        animating: false,
+        cursor: Math.min(useUiStore.getState().cursor, tiles - 1),
+      });
+    });
     const unsubscribeEvents = session.onEvents((previous, next, events) => {
       playback.play(previous, next, events, performance.now());
       if (playback.active) useUiStore.setState({ animating: true });
@@ -92,6 +101,7 @@ export function GameCanvas() {
       observer.disconnect();
       unsubscribeUi();
       unsubscribeState();
+      unsubscribeReset();
       unsubscribeEvents();
       playback.stop();
     };
