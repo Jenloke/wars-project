@@ -135,7 +135,15 @@ export function createRenderer(
   }
 
   function drawAtTile(ref: SpriteRef, at: TileIndex, width: number): void {
-    blit(atlas, ref, 0, 0, originX + (at % width) * tile, originY + ((at / width) | 0) * tile, false);
+    blit(
+      atlas,
+      ref,
+      0,
+      0,
+      originX + (at % width) * tile,
+      originY + ((at / width) | 0) * tile,
+      false,
+    );
   }
 
   function drawUnit(state: GameState, unit: Unit, x: number, y: number, frame: number): void {
@@ -155,7 +163,8 @@ export function createRenderer(
     else if (unit.pos !== NO_TILE && state.capture[unit.pos]! < ruleset.rules.capturePoints) {
       blit(atlas, sprite.capture, 0, 0, px, py, false);
     }
-    if (unit.fuel <= def.maxFuel * LOW_SUPPLY_FRACTION) blit(atlas, sprite.fuel, 0, 0, px, py, false);
+    if (unit.fuel <= def.maxFuel * LOW_SUPPLY_FRACTION)
+      blit(atlas, sprite.fuel, 0, 0, px, py, false);
     if (def.maxAmmo > 0 && unit.ammo <= def.maxAmmo * LOW_SUPPLY_FRACTION) {
       blit(atlas, sprite.ammo, 0, 0, px, py, false);
     }
@@ -212,7 +221,10 @@ export function createRenderer(
     if (current === null) return;
 
     if (current.kind === 'puff') {
-      const step = Math.min(sprite.puff.frames - 1, Math.floor(playback.progress * sprite.puff.frames));
+      const step = Math.min(
+        sprite.puff.frames - 1,
+        Math.floor(playback.progress * sprite.puff.frames),
+      );
       blit(atlas, sprite.puff, step, 0, tileX(current.at), tileY(current.at), false);
       return;
     }
@@ -241,7 +253,13 @@ export function createRenderer(
       const dx = Math.sign((current.toward % width) - (current.from % width));
       const dy = Math.sign(((current.toward / width) | 0) - ((current.from / width) | 0));
       const reach = swing * tile * 0.3;
-      drawUnit(state, unit, tileX(current.from) + dx * reach, tileY(current.from) + dy * reach, frame);
+      drawUnit(
+        state,
+        unit,
+        tileX(current.from) + dx * reach,
+        tileY(current.from) + dy * reach,
+        frame,
+      );
     } else {
       const at = playback.settled.get(current.unit) ?? unit.pos;
       if (at !== NO_TILE) drawUnit(state, unit, tileX(at), tileY(at) - swing * tile * 0.25, frame);

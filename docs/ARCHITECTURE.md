@@ -8,10 +8,10 @@ Checks: `pnpm test`, `pnpm typecheck`, `pnpm lint`.
 
 ## 0. Deviations from SPEC.md
 
-| Spec item | Change | Reason |
-|---|---|---|
+| Spec item                                     | Change                                                    | Reason                                                                                                                                                    |
+| --------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | First map "Spann Island", transcribed exactly | Replaced by an original map, **Twin Fords** (section 5.3) | Spann Island is a level from the commercial game. The ASCII format, converter, legend, and property-check test are all kept; only the layout is original. |
-| "the damage table" | Original base-damage numbers, tuned for this game | The formula shape is a genre mechanic; the commercial game's exact matrix is not copied. |
+| "the damage table"                            | Original base-damage numbers, tuned for this game         | The formula shape is a genre mechanic; the commercial game's exact matrix is not copied.                                                                  |
 
 Everything else in the spec stands. Unit names are generic military roles; faction
 names, commander names, art, and audio are original.
@@ -84,49 +84,48 @@ All state is plain JSON (rule 2). Hot-path lookups use flat arrays indexed by
 `i = y * width + x`, never nested arrays or string-keyed coordinate maps.
 
 ```ts
-type UnitId = number;            // monotonically increasing, never reused
-type PlayerIndex = number;       // 0..3
-type TileIndex = number;         // y * width + x
+type UnitId = number; // monotonically increasing, never reused
+type PlayerIndex = number; // 0..3
+type TileIndex = number; // y * width + x
 
 interface GameState {
   schemaVersion: number;
-  rulesetId: string;             // which content build this game was created with
+  rulesetId: string; // which content build this game was created with
   mapId: string;
   width: number;
   height: number;
-  terrain: number[];             // per tile: terrain index into ruleset.terrain
-  owner: number[];               // per tile: PlayerIndex, or -1 (neutral / not a property)
-  capture: number[];             // per tile: remaining capture points (properties only)
-  occupant: number[];            // per tile: UnitId, or -1. O(1) "who is here"
-  units: Record<UnitId, Unit>;   // O(1) by id; JSON-safe
+  terrain: number[]; // per tile: terrain index into ruleset.terrain
+  owner: number[]; // per tile: PlayerIndex, or -1 (neutral / not a property)
+  capture: number[]; // per tile: remaining capture points (properties only)
+  occupant: number[]; // per tile: UnitId, or -1. O(1) "who is here"
+  units: Record<UnitId, Unit>; // O(1) by id; JSON-safe
   nextUnitId: number;
   players: Player[];
   activePlayer: PlayerIndex;
   day: number;
-  incomePerProperty: number;     // from the map's rules
-  rng: number;                   // uint32 seed; advanced on every draw
+  incomePerProperty: number; // from the map's rules
+  rng: number; // uint32 seed; advanced on every draw
   status:
-    | { kind: 'playing' }
-    | { kind: 'won'; winner: PlayerIndex; reason: 'hq' | 'rout' | 'resign' };
+    { kind: 'playing' } | { kind: 'won'; winner: PlayerIndex; reason: 'hq' | 'rout' | 'resign' };
 }
 
 interface Unit {
   id: UnitId;
-  type: number;                  // index into ruleset.units
+  type: number; // index into ruleset.units
   owner: PlayerIndex;
-  pos: TileIndex;                // -1 while loaded in a transport
-  hp: number;                    // 1..100 internal; displayed as ceil(hp / 10)
+  pos: TileIndex; // -1 while loaded in a transport
+  hp: number; // 1..100 internal; displayed as ceil(hp / 10)
   fuel: number;
   ammo: number;
-  moved: boolean;                // has acted this turn
-  cargo: UnitId[];               // transports
-  carrier: UnitId;               // -1 if not loaded
+  moved: boolean; // has acted this turn
+  cargo: UnitId[]; // transports
+  carrier: UnitId; // -1 if not loaded
 }
 
 interface Player {
   funds: number;
-  commander: number;             // index into ruleset.commanders (0 = no-op)
-  power: number;                 // power meter
+  commander: number; // index into ruleset.commanders (0 = no-op)
+  power: number; // power meter
   controller: 'local' | 'ai' | 'remote';
   alive: boolean;
 }
@@ -141,13 +140,13 @@ Design-for-later fields (fog, weather) are added by schema migration when built;
 (`"tank"`, `"forest"`). At game start the engine compiles it once into a
 `CompiledRuleset` held **outside** game state:
 
-| Table | Structure | Lookup |
-|---|---|---|
-| Move cost | `Uint8Array[moveTypeCount * terrainCount]`, 255 = impassable | `cost[mt * T + terrain]` |
-| Base damage | `Int16Array[unitCount * unitCount]`, -1 = cannot attack | `dmg[atk * U + def]` |
-| Defence stars | `Uint8Array[terrainCount]` | direct |
-| Unit stats | array of frozen records, index = unit type | direct |
-| ID interning | `Map<string, number>` each for units/terrain/moveTypes | load/save boundaries only |
+| Table         | Structure                                                    | Lookup                    |
+| ------------- | ------------------------------------------------------------ | ------------------------- |
+| Move cost     | `Uint8Array[moveTypeCount * terrainCount]`, 255 = impassable | `cost[mt * T + terrain]`  |
+| Base damage   | `Int16Array[unitCount * unitCount]`, -1 = cannot attack      | `dmg[atk * U + def]`      |
+| Defence stars | `Uint8Array[terrainCount]`                                   | direct                    |
+| Unit stats    | array of frozen records, index = unit type                   | direct                    |
+| ID interning  | `Map<string, number>` each for units/terrain/moveTypes       | load/save boundaries only |
 
 State stores numeric indices; string IDs appear only in content, maps, and saves'
 `rulesetId`. Adding a unit or terrain is a content edit, with no engine change
@@ -164,14 +163,14 @@ action touches are cloned (e.g. a `Move` clones `occupant` and the one `Unit`;
 
 ```ts
 type Action =
-  | { type: 'Move';    unit: UnitId; path: TileIndex[] }
-  | { type: 'Attack';  unit: UnitId; path: TileIndex[]; target: TileIndex }
+  | { type: 'Move'; unit: UnitId; path: TileIndex[] }
+  | { type: 'Attack'; unit: UnitId; path: TileIndex[]; target: TileIndex }
   | { type: 'Capture'; unit: UnitId; path: TileIndex[] }
-  | { type: 'Join';    unit: UnitId; path: TileIndex[] }
-  | { type: 'Load';    unit: UnitId; path: TileIndex[] }
-  | { type: 'Unload';  unit: UnitId; path: TileIndex[]; drops: { cargo: UnitId; to: TileIndex }[] }
-  | { type: 'Supply';  unit: UnitId; path: TileIndex[] }
-  | { type: 'Build';   at: TileIndex; unitType: number }
+  | { type: 'Join'; unit: UnitId; path: TileIndex[] }
+  | { type: 'Load'; unit: UnitId; path: TileIndex[] }
+  | { type: 'Unload'; unit: UnitId; path: TileIndex[]; drops: { cargo: UnitId; to: TileIndex }[] }
+  | { type: 'Supply'; unit: UnitId; path: TileIndex[] }
+  | { type: 'Build'; at: TileIndex; unitType: number }
   | { type: 'EndTurn' }
   | { type: 'Resign' };
 // Phase 4/5 additions: Dive, Surface, ActivatePower
@@ -222,7 +221,7 @@ units can be passed through but not stopped on (except Join/Load). The result
 ```ts
 interface CommanderDef {
   id: string;
-  modifiers: Modifier[];   // data: { hook, filter, op, value }
+  modifiers: Modifier[]; // data: { hook, filter, op, value }
 }
 type Hook = 'attack' | 'defence' | 'movement' | 'cost' | 'powerGain';
 ```
@@ -254,7 +253,7 @@ interface MapJson {
   author: string;
   width: number;
   height: number;
-  tiles: string[];                                   // terrain IDs, row-major, length w*h
+  tiles: string[]; // terrain IDs, row-major, length w*h
   properties: { x: number; y: number; owner: number | null }[];
   units: { x: number; y: number; type: string; owner: number; hp?: number }[];
   players: { slot: number; startingFunds: number }[];
@@ -272,14 +271,14 @@ Nothing in engine, renderer, or UI assumes a map size.
 (`char -> { terrain, owner? }`); rows must be equal length or the converter throws
 with the row number.
 
-| Char | Meaning | Char | Meaning |
-|---|---|---|---|
-| `~` | Sea | `C` | City, neutral |
-| `.` | Plains | `H` | HQ, Player 1 |
-| `=` | Road | `R` | Base, Player 1 |
-| `F` | Forest | `h` | HQ, Player 2 |
-| `M` | Mountain | `b` | Base, Player 2 |
-| `B` | Bridge | | |
+| Char | Meaning  | Char | Meaning        |
+| ---- | -------- | ---- | -------------- |
+| `~`  | Sea      | `C`  | City, neutral  |
+| `.`  | Plains   | `H`  | HQ, Player 1   |
+| `=`  | Road     | `R`  | Base, Player 1 |
+| `F`  | Forest   | `h`  | HQ, Player 2   |
+| `M`  | Mountain | `b`  | Base, Player 2 |
+| `B`  | Bridge   |      |                |
 
 ### 5.3 First map: Twin Fords (original)
 
@@ -349,7 +348,7 @@ Property check (asserted by the converter test):
 - **Tweens**: slide-along-path, attack bump, capture hop, destroy puff. They are driven
   by engine `events`, live in transient animation state, and block input until done.
 - **Zustand (UI only)**: cursor, selection, interaction mode (`idle | unitSelected |
-  choosingAction | choosingTarget | buildMenu`), cached reachable set, hovered tile,
+choosingAction | choosingTarget | buildMenu`), cached reachable set, hovered tile,
   camera. Game state lives in `GameSession`, not in the store; React subscribes to it
   through `useSyncExternalStore`.
 - **Input**: mouse (click select/confirm, right-click cancel, drag pan, wheel zoom) and
@@ -359,18 +358,18 @@ Property check (asserted by the converter test):
 
 ## 8. Testing
 
-| Area | Tests |
-|---|---|
-| Movement | range per move type and terrain, fuel limit, blocking, pass-through |
-| Combat | formula against hand-computed cases, luck determinism per seed, counterattack, indirect rules, ammo |
-| Capture | progress by HP, reset on leaving, HQ capture wins |
-| Supply | property repair cost and cap, resupply, APC supply, joining |
-| Win | HQ capture, rout |
-| Determinism | same seed + same log gives the same state hash |
-| Save | save -> load -> deep-equal state (Phase 2) |
-| Map | Twin Fords converts and matches the property check in 5.3 |
-| Content | all content passes zod; every armed unit has targets; primary weapons need ammo |
-| Perf | range query and 1000 random legal actions on a 30x20 map within a time budget |
+| Area        | Tests                                                                                               |
+| ----------- | --------------------------------------------------------------------------------------------------- |
+| Movement    | range per move type and terrain, fuel limit, blocking, pass-through                                 |
+| Combat      | formula against hand-computed cases, luck determinism per seed, counterattack, indirect rules, ammo |
+| Capture     | progress by HP, reset on leaving, HQ capture wins                                                   |
+| Supply      | property repair cost and cap, resupply, APC supply, joining                                         |
+| Win         | HQ capture, rout                                                                                    |
+| Determinism | same seed + same log gives the same state hash                                                      |
+| Save        | save -> load -> deep-equal state (Phase 2)                                                          |
+| Map         | Twin Fords converts and matches the property check in 5.3                                           |
+| Content     | all content passes zod; every armed unit has targets; primary weapons need ammo                     |
+| Perf        | range query and 1000 random legal actions on a 30x20 map within a time budget                       |
 
 ## 9. Phase 1 build order
 

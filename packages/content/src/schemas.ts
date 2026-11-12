@@ -32,9 +32,7 @@ export const terrainSchema = z.object({
   name: z.string().min(1),
   defence: z.number().int().min(0).max(4),
   moveCosts: z.record(id, z.number().int().min(1).max(15)),
-  property: z
-    .object({ isHq: z.boolean(), repairs: z.array(id), builds: z.array(id) })
-    .optional(),
+  property: z.object({ isHq: z.boolean(), repairs: z.array(id), builds: z.array(id) }).optional(),
 });
 
 export const damageEntrySchema = z.object({

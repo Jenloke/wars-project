@@ -27,7 +27,12 @@ export type Tween =
       readonly duration: number;
     }
   | { readonly kind: 'hop'; readonly unit: UnitId; readonly duration: number }
-  | { readonly kind: 'puff'; readonly unit: UnitId; readonly at: TileIndex; readonly duration: number };
+  | {
+      readonly kind: 'puff';
+      readonly unit: UnitId;
+      readonly at: TileIndex;
+      readonly duration: number;
+    };
 
 function tweensFor(next: GameState, events: readonly GameEvent[]): Tween[] {
   const tweens: Tween[] = [];

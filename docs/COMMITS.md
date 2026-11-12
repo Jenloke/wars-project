@@ -21,34 +21,34 @@ and why. The format is [Conventional Commits](https://www.conventionalcommits.or
 
 ## Types
 
-| Type | Use for |
-|---|---|
-| `feat` | A new player-visible or API-visible capability |
-| `fix` | A bug fix |
-| `perf` | A change whose only purpose is speed or memory |
-| `refactor` | Restructuring with no behaviour change |
-| `test` | Adding or correcting tests only |
-| `content` | Data-only changes: unit stats, terrain, damage table, maps, commanders |
-| `art` | Sprite SVGs, palette, atlas output |
-| `docs` | Documentation only |
-| `build` | Tooling, dependencies, workspace config, scripts |
-| `chore` | Housekeeping that fits nothing above |
+| Type       | Use for                                                                |
+| ---------- | ---------------------------------------------------------------------- |
+| `feat`     | A new player-visible or API-visible capability                         |
+| `fix`      | A bug fix                                                              |
+| `perf`     | A change whose only purpose is speed or memory                         |
+| `refactor` | Restructuring with no behaviour change                                 |
+| `test`     | Adding or correcting tests only                                        |
+| `content`  | Data-only changes: unit stats, terrain, damage table, maps, commanders |
+| `art`      | Sprite SVGs, palette, atlas output                                     |
+| `docs`     | Documentation only                                                     |
+| `build`    | Tooling, dependencies, workspace config, scripts                       |
+| `chore`    | Housekeeping that fits nothing above                                   |
 
 ## Scopes
 
 The scope is the package or area touched. Use exactly one; if a change needs two,
 it is usually two commits (engine first, then the consumer).
 
-| Scope | Path |
-|---|---|
-| `engine` | `packages/engine` |
-| `content` | `packages/content` |
-| `sprites` | `packages/sprites` |
-| `web` | `apps/web` |
-| `render` | `apps/web/src/render` |
-| `ui` | `apps/web/src/ui`, `apps/web/src/input`, `apps/web/src/store` |
-| `repo` | Root config, workspace, CI |
-| `docs` | `docs/` |
+| Scope     | Path                                                          |
+| --------- | ------------------------------------------------------------- |
+| `engine`  | `packages/engine`                                             |
+| `content` | `packages/content`                                            |
+| `sprites` | `packages/sprites`                                            |
+| `web`     | `apps/web`                                                    |
+| `render`  | `apps/web/src/render`                                         |
+| `ui`      | `apps/web/src/ui`, `apps/web/src/input`, `apps/web/src/store` |
+| `repo`    | Root config, workspace, CI                                    |
+| `docs`    | `docs/`                                                       |
 
 ## Rules that keep the history usable
 

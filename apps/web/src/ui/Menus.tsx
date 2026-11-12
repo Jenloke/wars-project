@@ -1,11 +1,5 @@
 import { getBuildOptions } from '@tactics/engine';
-import {
-  chooseBuild,
-  chooseCommand,
-  chooseUnload,
-  endTurn,
-  resign,
-} from '../input/interaction';
+import { chooseBuild, chooseCommand, chooseUnload, endTurn, resign } from '../input/interaction';
 import { ruleset } from '../session/game';
 import { useUiStore } from '../store/uiStore';
 import { useGameState } from './hooks';

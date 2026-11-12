@@ -2,14 +2,7 @@ import { weaponBaseDamage } from './combat';
 import { neighbours } from './grid';
 import { NO_DAMAGE, type CompiledRuleset } from './ruleset';
 import { canCaptureAt, canDropAt, canEnterTerrain, canJoinUnits, canLoadInto } from './rules';
-import {
-  NO_TILE,
-  NO_UNIT,
-  type GameState,
-  type TileIndex,
-  type Unit,
-  type UnitId,
-} from './types';
+import { NO_TILE, NO_UNIT, type GameState, type TileIndex, type Unit, type UnitId } from './types';
 import { isIndirect, unitCost } from './units';
 
 /**

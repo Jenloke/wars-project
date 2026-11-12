@@ -50,8 +50,7 @@ export function compileTerrainSprites(ruleset: CompiledRuleset): TerrainSprite[]
   return ruleset.terrain.map((terrain) => {
     const visual = terrainVisuals[terrain.id];
     if (visual === undefined) throw new Error(`Terrain "${terrain.id}" has no visual`);
-    const autotile =
-      visual.autotile && compileAutotile(ruleset, visual.sprite, visual.autotile);
+    const autotile = visual.autotile && compileAutotile(ruleset, visual.sprite, visual.autotile);
     return {
       base: autotile ? undefined : getSprite(visual.sprite),
       team: visual.team ?? false,

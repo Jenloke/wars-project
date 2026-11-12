@@ -9,13 +9,7 @@ import type { Camera, Viewport } from '../render/camera';
  * idle -> buildMenu | mapMenu -> idle
  */
 export type Mode =
-  | 'idle'
-  | 'moving'
-  | 'actionMenu'
-  | 'targeting'
-  | 'unloading'
-  | 'buildMenu'
-  | 'mapMenu';
+  'idle' | 'moving' | 'actionMenu' | 'targeting' | 'unloading' | 'buildMenu' | 'mapMenu';
 
 /**
  * UI state only. The game itself lives in `GameSession`; nothing here is needed

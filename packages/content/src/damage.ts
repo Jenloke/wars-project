@@ -3,7 +3,8 @@ import type { RawDamageEntry } from '@tactics/engine';
 /**
  * Base damage percent, attacker (row) against defender (column), at full HP on
  * open ground. `_` means the weapon cannot hit that target. These numbers are
- * this game's own balance and are expected to change with playtesting.
+ * this game's own balance and are expected to change with playtesting. The tables
+ * are aligned by hand, so Prettier leaves them alone.
  */
 
 const _ = null;
@@ -23,6 +24,7 @@ const DEFENDERS = [
 ] as const;
 
 /** Primary weapons: cannons, shells and rockets. Limited by ammo. */
+// prettier-ignore
 const PRIMARY: Readonly<Record<string, Row>> = {
   //            inf  mech recon tank  med  apc  art  rock  aa   miss
   mech:        [  _,   _,  78,  48,  18,  68,  62,  76,  58,  76],
@@ -34,6 +36,7 @@ const PRIMARY: Readonly<Record<string, Row>> = {
 };
 
 /** Secondary weapons: machine guns. Never run out. */
+// prettier-ignore
 const SECONDARY: Readonly<Record<string, Row>> = {
   //            inf  mech recon tank  med  apc  art  rock  aa   miss
   infantry:    [ 50,  40,  10,   4,   1,  12,  14,  22,   4,  22],

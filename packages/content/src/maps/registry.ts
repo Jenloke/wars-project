@@ -23,7 +23,9 @@ export function validateMap(map: MapData, ruleset: RawRuleset): string[] {
       problems.push(`Property at (${property.x},${property.y}) is not on property terrain`);
       continue;
     }
-    if (listed.has(tile)) problems.push(`Property at (${property.x},${property.y}) is listed twice`);
+    if (listed.has(tile)) {
+      problems.push(`Property at (${property.x},${property.y}) is listed twice`);
+    }
     listed.add(tile);
     if (property.owner !== null) {
       if (property.owner >= map.players.length) {

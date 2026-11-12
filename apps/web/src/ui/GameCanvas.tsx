@@ -105,7 +105,11 @@ export function GameCanvas() {
     const toCanvas = (event: { clientX: number; clientY: number }) => {
       const rect = canvas.getBoundingClientRect();
       const ratio = canvas.width / rect.width;
-      return { x: (event.clientX - rect.left) * ratio, y: (event.clientY - rect.top) * ratio, ratio };
+      return {
+        x: (event.clientX - rect.left) * ratio,
+        y: (event.clientY - rect.top) * ratio,
+        ratio,
+      };
     };
     const tileUnder = (event: { clientX: number; clientY: number }) => {
       const point = toCanvas(event);
