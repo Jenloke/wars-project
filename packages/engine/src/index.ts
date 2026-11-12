@@ -19,4 +19,11 @@ export {
   type GameRecord,
   type SaveData,
 } from './save/format';
+export {
+  migrateSave,
+  SAVE_MIGRATIONS,
+  type SaveDocument,
+  type SaveMigration,
+  type SaveMigrations,
+} from './save/migrations';
 export { restoreSave, type RestoredGame } from './save/restore';
