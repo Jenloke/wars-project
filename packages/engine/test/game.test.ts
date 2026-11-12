@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, hashState, replay, type Action, type GameState } from '../src/index';
-import { apply, deepFreeze, makeGame, reject, rules, unitAt } from './fixtures';
+import {
+  apply,
+  deepFreeze,
+  makeGame,
+  reject,
+  rules,
+  SCRIPT_ROWS,
+  scriptedActions,
+  unitAt,
+} from './fixtures';
 
 describe('turns', () => {
   it('alternates players, counts days, pays income and refreshes units', () => {
@@ -62,25 +71,8 @@ describe('win conditions', () => {
   });
 });
 
-/** A short scripted game that touches building, movement, combat and capture. */
 function scriptedGame(seed: number): { initial: GameState; actions: Action[] } {
-  const initial = makeGame(['R==C==b', 'H=====h'], [], seed);
-  const infantry = rules.unitIndex.get('infantry')!;
-  const actions: Action[] = [
-    { type: 'Build', at: 0, unitType: infantry }, // unit 1
-    { type: 'EndTurn' },
-    { type: 'Build', at: 6, unitType: infantry }, // unit 2
-    { type: 'EndTurn' },
-    { type: 'Capture', unit: 1, path: [1, 2, 3] },
-    { type: 'Build', at: 0, unitType: infantry }, // unit 3
-    { type: 'EndTurn' },
-    { type: 'Attack', unit: 2, path: [5, 4], target: 3 },
-    { type: 'EndTurn' },
-    { type: 'Attack', unit: 1, path: [], target: 4 },
-    { type: 'Move', unit: 3, path: [1, 2] },
-    { type: 'EndTurn' },
-  ];
-  return { initial, actions };
+  return { initial: makeGame(SCRIPT_ROWS, [], seed), actions: scriptedActions() };
 }
 
 describe('determinism and serialization', () => {

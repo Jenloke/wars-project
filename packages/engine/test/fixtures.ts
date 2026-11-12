@@ -236,6 +236,28 @@ export function withUnit(state: GameState, id: number, patch: Partial<Unit>): Ga
   return { ...state, units: { ...state.units, [id]: { ...state.units[id]!, ...patch } } };
 }
 
+/** Map for the scripted game: a base and HQ each, with a neutral city between. */
+export const SCRIPT_ROWS: readonly string[] = ['R==C==b', 'H=====h'];
+
+/** A short game on `SCRIPT_ROWS` that builds, moves, fights and captures. */
+export function scriptedActions(): Action[] {
+  const infantry = rules.unitIndex.get('infantry')!;
+  return [
+    { type: 'Build', at: 0, unitType: infantry }, // unit 1
+    { type: 'EndTurn' },
+    { type: 'Build', at: 6, unitType: infantry }, // unit 2
+    { type: 'EndTurn' },
+    { type: 'Capture', unit: 1, path: [1, 2, 3] },
+    { type: 'Build', at: 0, unitType: infantry }, // unit 3
+    { type: 'EndTurn' },
+    { type: 'Attack', unit: 2, path: [5, 4], target: 3 },
+    { type: 'EndTurn' },
+    { type: 'Attack', unit: 1, path: [], target: 4 },
+    { type: 'Move', unit: 3, path: [1, 2] },
+    { type: 'EndTurn' },
+  ];
+}
+
 export function deepFreeze<T>(value: T): T {
   if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {
     Object.freeze(value);
