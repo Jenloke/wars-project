@@ -31,3 +31,4 @@ export {
   type AutotileRule,
   type TerrainVisual,
 } from './visuals';
+export { actionSchema, readSave, saveSchema } from './saves';
