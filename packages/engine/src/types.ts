@@ -141,7 +141,12 @@ export type GameEvent =
   | { readonly type: 'Supplied'; readonly by: UnitId; readonly targets: readonly TileIndex[] }
   | { readonly type: 'Joined'; readonly unit: UnitId; readonly into: UnitId }
   | { readonly type: 'Loaded'; readonly unit: UnitId; readonly into: UnitId }
-  | { readonly type: 'Unloaded'; readonly unit: UnitId; readonly from: UnitId; readonly to: TileIndex }
+  | {
+      readonly type: 'Unloaded';
+      readonly unit: UnitId;
+      readonly from: UnitId;
+      readonly to: TileIndex;
+    }
   | { readonly type: 'TurnStarted'; readonly player: PlayerIndex; readonly day: number }
   | { readonly type: 'PlayerDefeated'; readonly player: PlayerIndex; readonly reason: WinReason }
   | { readonly type: 'GameWon'; readonly winner: PlayerIndex; readonly reason: WinReason };

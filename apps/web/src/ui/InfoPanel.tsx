@@ -85,7 +85,9 @@ function UnitInfo({ state, tile }: { state: GameState; tile: TileIndex }) {
         {def.maxRange > 0 && (
           <>
             <dt>Range</dt>
-            <dd>{def.minRange === def.maxRange ? def.minRange : `${def.minRange}-${def.maxRange}`}</dd>
+            <dd>
+              {def.minRange === def.maxRange ? def.minRange : `${def.minRange}-${def.maxRange}`}
+            </dd>
           </>
         )}
         {unit.cargo.length > 0 && (

@@ -1,5 +1,6 @@
 import { factions } from '@tactics/content';
 import type { WinReason } from '@tactics/engine';
+import { openGameDialog } from '../input/interaction';
 import { startNewGame } from '../session/game';
 import { useGameState } from './hooks';
 
@@ -38,9 +39,14 @@ export function GameOver() {
         </h1>
         <p>{REASONS[state.status.reason]}</p>
         <p className="muted">Day {state.day}</p>
-        <button type="button" className="primary" autoFocus onClick={() => startNewGame()}>
-          New game
-        </button>
+        <div className="game-over-actions">
+          <button type="button" onClick={openGameDialog}>
+            Load a save
+          </button>
+          <button type="button" className="primary" autoFocus onClick={() => startNewGame()}>
+            New game
+          </button>
+        </div>
       </div>
     </div>
   );

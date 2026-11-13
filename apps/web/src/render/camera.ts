@@ -53,12 +53,7 @@ export function clampCamera(
 }
 
 /** Changes zoom while keeping the world point under `(anchorX, anchorY)` fixed. */
-export function zoomAt(
-  camera: Camera,
-  zoom: number,
-  anchorX: number,
-  anchorY: number,
-): Camera {
+export function zoomAt(camera: Camera, zoom: number, anchorX: number, anchorY: number): Camera {
   const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom));
   const ratio = next / camera.zoom;
   return {

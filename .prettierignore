@@ -1,0 +1,6 @@
+# Generated files
+pnpm-lock.yaml
+**/dist/
+
+# The project brief, kept exactly as written
+docs/SPEC.md

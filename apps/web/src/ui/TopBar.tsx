@@ -1,5 +1,5 @@
 import { factions } from '@tactics/content';
-import { endTurn, zoomBy } from '../input/interaction';
+import { endTurn, openGameDialog, zoomBy } from '../input/interaction';
 import { MAX_ZOOM, MIN_ZOOM } from '../render/camera';
 import { useUiStore } from '../store/uiStore';
 import { useGameState } from './hooks';
@@ -53,6 +53,9 @@ export function TopBar() {
           aria-label="Zoom in"
         >
           +
+        </button>
+        <button type="button" onClick={openGameDialog}>
+          Save / Load
         </button>
         <button
           type="button"

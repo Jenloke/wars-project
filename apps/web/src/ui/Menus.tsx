@@ -4,6 +4,7 @@ import {
   chooseCommand,
   chooseUnload,
   endTurn,
+  openGameDialog,
   resign,
 } from '../input/interaction';
 import { ruleset } from '../session/game';
@@ -63,6 +64,7 @@ function BuildMenu() {
 function MapMenu() {
   const items: MenuItem[] = [
     { key: 'end', label: 'End turn', onSelect: endTurn },
+    { key: 'saves', label: 'Save / Load', onSelect: openGameDialog },
     {
       key: 'resign',
       label: 'Resign',

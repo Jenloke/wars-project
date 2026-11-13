@@ -6,16 +6,7 @@ import {
   createGame,
   previewAttack,
 } from '../src/index';
-import {
-  apply,
-  makeGame,
-  makeMap,
-  reject,
-  rules,
-  testRuleset,
-  unitAt,
-  withUnit,
-} from './fixtures';
+import { apply, makeGame, makeMap, reject, rules, testRuleset, unitAt, withUnit } from './fixtures';
 
 describe('damage formula', () => {
   it('matches hand-computed values', () => {

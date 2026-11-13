@@ -9,13 +9,7 @@ import type { Camera, Viewport } from '../render/camera';
  * idle -> buildMenu | mapMenu -> idle
  */
 export type Mode =
-  | 'idle'
-  | 'moving'
-  | 'actionMenu'
-  | 'targeting'
-  | 'unloading'
-  | 'buildMenu'
-  | 'mapMenu';
+  'idle' | 'moving' | 'actionMenu' | 'targeting' | 'unloading' | 'buildMenu' | 'mapMenu';
 
 /**
  * UI state only. The game itself lives in `GameSession`; nothing here is needed
@@ -38,6 +32,8 @@ export interface UiState {
   readonly menuTile: TileIndex;
   /** True while an action's animation plays; input is ignored. */
   readonly animating: boolean;
+  /** True while the save and load dialog is open; map input is ignored. */
+  readonly dialogOpen: boolean;
   readonly camera: Camera;
   readonly viewport: Viewport;
 }
@@ -57,6 +53,7 @@ export const useUiStore = create<UiState>(() => ({
   ...IDLE_SELECTION,
   cursor: 0,
   animating: false,
+  dialogOpen: false,
   camera: { x: 0, y: 0, zoom: 1 },
   viewport: { width: 1, height: 1, dpr: 1 },
 }));

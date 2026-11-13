@@ -1,29 +1,9 @@
 /** Public API of the content package. All data is validated once at import. */
-import type { RawRuleset } from '@tactics/engine';
-import { commanders } from './commanders';
-import { damage } from './damage';
 import { MapRegistry } from './maps/registry';
 import { twinFords } from './maps/twinFords';
-import { moveTypes } from './moveTypes';
-import { rulesetSchema } from './schemas';
-import { terrain } from './terrain';
-import { units } from './units';
+import { ruleset } from './ruleset';
 
-export const ruleset: RawRuleset = rulesetSchema.parse({
-  id: 'core-1',
-  moveTypes,
-  units,
-  terrain,
-  damage,
-  commanders,
-  rules: {
-    maxHp: 100,
-    hpPerPip: 10,
-    capturePoints: 20,
-    repairHp: 20,
-    luckMax: 9,
-  },
-});
+export { ruleset } from './ruleset';
 
 export const maps = new MapRegistry(ruleset);
 maps.register(twinFords);
@@ -51,3 +31,4 @@ export {
   type AutotileRule,
   type TerrainVisual,
 } from './visuals';
+export { actionSchema, readSave, saveSchema } from './saves';

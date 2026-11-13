@@ -17,7 +17,7 @@ import {
   type UnitId,
 } from '@tactics/engine';
 import { clampCamera, panToTile, zoomAt } from '../render/camera';
-import { ruleset, session } from '../session/game';
+import { autosave, ruleset, session } from '../session/game';
 import { IDLE_SELECTION, useUiStore } from '../store/uiStore';
 
 /**
@@ -50,7 +50,8 @@ function destinationOf(state: GameState): TileIndex {
 }
 
 function isBusy(): boolean {
-  return useUiStore.getState().animating || session.getState().status.kind !== 'playing';
+  const { animating, dialogOpen } = useUiStore.getState();
+  return animating || dialogOpen || session.getState().status.kind !== 'playing';
 }
 
 function resetSelection(): void {
@@ -283,6 +284,17 @@ export function openMapMenu(): void {
   if (isBusy()) return;
   const ui = useUiStore.getState();
   if (ui.mode === 'idle') useUiStore.setState({ mode: 'mapMenu', menuTile: ui.cursor });
+}
+
+/** Opens the save and load dialog, dropping any half-finished order. */
+export function openGameDialog(): void {
+  // Write a pending autosave first, so the autosave slot shows the latest move.
+  autosave.flush();
+  useUiStore.setState({ ...IDLE_SELECTION, dialogOpen: true });
+}
+
+export function closeGameDialog(): void {
+  useUiStore.setState({ dialogOpen: false });
 }
 
 export function endTurn(): void {

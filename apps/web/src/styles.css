@@ -301,6 +301,123 @@ button.primary {
   margin: 0 0 8px;
 }
 
+.game-over-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Save and load dialog (native modal, rendered in the top layer). */
+.game-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 16px 48px rgb(0 0 0 / 50%);
+}
+
+.game-dialog::backdrop {
+  background: rgb(10 14 20 / 70%);
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 8px;
+}
+
+.dialog-header h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.icon-button {
+  min-width: 36px;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.dialog-notice {
+  margin: 0 16px 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+}
+
+.slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0 16px;
+  list-style: none;
+}
+
+.slot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.slot-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.slot-name {
+  font-weight: 600;
+}
+
+.slot-time {
+  font-size: 12px;
+}
+
+.slot-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.dialog-status {
+  min-height: 1.4em;
+  margin: 10px 16px 0;
+  color: var(--muted);
+}
+
+.dialog-status[data-tone='error'] {
+  color: var(--danger);
+}
+
+.dialog-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px 16px;
+}
+
+@media (max-width: 560px) {
+  .slot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .slot-actions {
+    justify-content: flex-end;
+  }
+}
+
 /* Tablet and narrower: the info panel moves below the map, cards side by side. */
 @media (max-width: 900px) {
   .app {

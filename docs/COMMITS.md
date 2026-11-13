@@ -21,34 +21,34 @@ and why. The format is [Conventional Commits](https://www.conventionalcommits.or
 
 ## Types
 
-| Type | Use for |
-|---|---|
-| `feat` | A new player-visible or API-visible capability |
-| `fix` | A bug fix |
-| `perf` | A change whose only purpose is speed or memory |
-| `refactor` | Restructuring with no behaviour change |
-| `test` | Adding or correcting tests only |
-| `content` | Data-only changes: unit stats, terrain, damage table, maps, commanders |
-| `art` | Sprite SVGs, palette, atlas output |
-| `docs` | Documentation only |
-| `build` | Tooling, dependencies, workspace config, scripts |
-| `chore` | Housekeeping that fits nothing above |
+| Type       | Use for                                                                |
+| ---------- | ---------------------------------------------------------------------- |
+| `feat`     | A new player-visible or API-visible capability                         |
+| `fix`      | A bug fix                                                              |
+| `perf`     | A change whose only purpose is speed or memory                         |
+| `refactor` | Restructuring with no behaviour change                                 |
+| `test`     | Adding or correcting tests only                                        |
+| `content`  | Data-only changes: unit stats, terrain, damage table, maps, commanders |
+| `art`      | Sprite SVGs, palette, atlas output                                     |
+| `docs`     | Documentation only                                                     |
+| `build`    | Tooling, dependencies, workspace config, scripts                       |
+| `chore`    | Housekeeping that fits nothing above                                   |
 
 ## Scopes
 
 The scope is the package or area touched. Use exactly one; if a change needs two,
 it is usually two commits (engine first, then the consumer).
 
-| Scope | Path |
-|---|---|
-| `engine` | `packages/engine` |
-| `content` | `packages/content` |
-| `sprites` | `packages/sprites` |
-| `web` | `apps/web` |
-| `render` | `apps/web/src/render` |
-| `ui` | `apps/web/src/ui`, `apps/web/src/input`, `apps/web/src/store` |
-| `repo` | Root config, workspace, CI |
-| `docs` | `docs/` |
+| Scope     | Path                                                          |
+| --------- | ------------------------------------------------------------- |
+| `engine`  | `packages/engine`                                             |
+| `content` | `packages/content`                                            |
+| `sprites` | `packages/sprites`                                            |
+| `web`     | `apps/web`                                                    |
+| `render`  | `apps/web/src/render`                                         |
+| `ui`      | `apps/web/src/ui`, `apps/web/src/input`, `apps/web/src/store` |
+| `repo`    | Root config, workspace, CI                                    |
+| `docs`    | `docs/`                                                       |
 
 ## Rules that keep the history usable
 
@@ -59,14 +59,17 @@ it is usually two commits (engine first, then the consumer).
    with `git log --grep "^content"`.
 3. **Anything that changes game results is flagged.** If a commit changes what
    `applyAction` produces for an existing action log (formula, RNG use, rule order),
-   add the footer `REPLAY-BREAKING: <what changed>`. Old replays and saves will
-   diverge, so this needs a ruleset or save version bump.
-4. **State shape changes are breaking.** Any change to `GameState`, `Action`, or the
-   map JSON format uses `!` after the scope and a `BREAKING CHANGE:` footer, and
-   bumps the matching version (`schemaVersion` or `formatVersion`) with a migration.
+   add the footer `REPLAY-BREAKING: <what changed>` and bump the ruleset `id` in
+   `packages/content/src/ruleset.ts`, so old saves are refused instead of replaying
+   into a different game.
+4. **State shape changes are breaking.** Any change to `GameState`, `Action`, the save
+   format or the map JSON format uses `!` after the scope and a `BREAKING CHANGE:`
+   footer. It bumps `SAVE_VERSION` and adds a migration in
+   `packages/engine/src/save/migrations.ts` (and bumps `formatVersion` for map changes).
 5. **Generated files go with their source.** Regenerated atlas output is committed in
    the same commit as the SVG or palette change that caused it.
-6. **Each commit passes** `pnpm typecheck`, `pnpm lint`, and `pnpm test`.
+6. **Each commit passes** `pnpm typecheck`, `pnpm lint`, `pnpm format:check` and
+   `pnpm test`.
 
 ## Examples
 
@@ -100,7 +103,7 @@ owner array reference changes.
 feat(engine)!: store capture points per tile instead of per unit
 
 BREAKING CHANGE: GameState.capture added, Unit.captureProgress removed.
-schemaVersion 1 -> 2, migration added in saves/migrations.ts.
+SAVE_VERSION 1 -> 2, migration added in packages/engine/src/save/migrations.ts.
 REPLAY-BREAKING: none, results are identical.
 ```
 
