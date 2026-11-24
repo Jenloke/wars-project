@@ -42,6 +42,7 @@ it is usually two commits (engine first, then the consumer).
 | Scope     | Path                                                          |
 | --------- | ------------------------------------------------------------- |
 | `engine`  | `packages/engine`                                             |
+| `ai`      | `packages/ai`                                                 |
 | `content` | `packages/content`                                            |
 | `sprites` | `packages/sprites`                                            |
 | `web`     | `apps/web`                                                    |
