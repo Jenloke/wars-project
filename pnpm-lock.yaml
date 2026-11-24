@@ -190,6 +190,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@tactics/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@tactics/content':
         specifier: workspace:*
         version: link:../../packages/content
@@ -221,6 +224,16 @@ importers:
       vite:
         specifier: ^8.3.8
         version: 8.3.8(@types/node@24.19.2)(esbuild@0.28.2)(tsx@4.23.15)
+
+  packages/ai:
+    dependencies:
+      '@tactics/engine':
+        specifier: workspace:*
+        version: link:../engine
+    devDependencies:
+      '@tactics/content':
+        specifier: workspace:*
+        version: link:../content
 
   packages/content:
     dependencies:
