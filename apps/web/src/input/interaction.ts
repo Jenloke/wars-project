@@ -18,7 +18,7 @@ import {
 } from '@tactics/engine';
 import { clampCamera, panToTile, zoomAt } from '../render/camera';
 import { autosave, ruleset, session } from '../session/game';
-import { IDLE_SELECTION, useUiStore } from '../store/uiStore';
+import { IDLE_SELECTION, useUiStore, type DialogKind } from '../store/uiStore';
 
 /**
  * The select -> move -> act flow. Every function here reads the game state and
@@ -52,6 +52,15 @@ function destinationOf(state: GameState): TileIndex {
 function isBusy(): boolean {
   const { animating, dialogOpen } = useUiStore.getState();
   return animating || dialogOpen || session.getState().status.kind !== 'playing';
+}
+
+/**
+ * True if orders can be given now: nothing is in the way and the active player
+ * plays on this device. During the computer's turn the cursor still moves, so
+ * units can be inspected, but nothing can be ordered.
+ */
+function canCommand(): boolean {
+  return !isBusy() && session.isLocalTurn();
 }
 
 function resetSelection(): void {
@@ -171,7 +180,7 @@ function confirmMove(state: GameState, tile: TileIndex): void {
 
 /** Confirms at the cursor: select, pick a destination, or pick a target. */
 export function confirm(): void {
-  if (isBusy()) return;
+  if (!canCommand()) return;
   const ui = useUiStore.getState();
   const state = session.getState();
   switch (ui.mode) {
@@ -231,7 +240,7 @@ export function cancel(): void {
 
 /** Runs a command chosen from the unit action menu. */
 export function chooseCommand(command: UnitCommand): void {
-  if (isBusy()) return;
+  if (!canCommand()) return;
   const ui = useUiStore.getState();
   if (ui.mode !== 'actionMenu' || ui.options === null) return;
   const { selectedUnit: unit, path } = ui;
@@ -262,7 +271,7 @@ export function chooseCommand(command: UnitCommand): void {
 
 /** Starts choosing where to drop one carried unit. */
 export function chooseUnload(cargo: UnitId): void {
-  if (isBusy()) return;
+  if (!canCommand()) return;
   const ui = useUiStore.getState();
   const option = ui.options?.unloads.find((unload) => unload.cargo === cargo);
   if (ui.mode !== 'actionMenu' || option === undefined) return;
@@ -275,34 +284,45 @@ export function chooseUnload(cargo: UnitId): void {
 }
 
 export function chooseBuild(unitType: number): void {
-  if (isBusy()) return;
+  if (!canCommand()) return;
   const { mode, menuTile } = useUiStore.getState();
   if (mode === 'buildMenu') submit({ type: 'Build', at: menuTile, unitType });
 }
 
 export function openMapMenu(): void {
-  if (isBusy()) return;
+  if (!canCommand()) return;
   const ui = useUiStore.getState();
   if (ui.mode === 'idle') useUiStore.setState({ mode: 'mapMenu', menuTile: ui.cursor });
 }
 
-/** Opens the save and load dialog, dropping any half-finished order. */
-export function openGameDialog(): void {
+function openDialog(dialog: DialogKind): void {
   // Write a pending autosave first, so the autosave slot shows the latest move.
   autosave.flush();
-  useUiStore.setState({ ...IDLE_SELECTION, dialogOpen: true });
+  useUiStore.setState({ ...IDLE_SELECTION, dialogOpen: true, dialog });
 }
 
-export function closeGameDialog(): void {
-  useUiStore.setState({ dialogOpen: false });
+/** Opens the save and load dialog, dropping any half-finished order. */
+export function openGameDialog(): void {
+  openDialog('saves');
+}
+
+/** Opens the new game setup, dropping any half-finished order. */
+export function openNewGameDialog(): void {
+  openDialog('newGame');
+}
+
+/** Marks `dialog` closed, unless another dialog has replaced it meanwhile. */
+export function closeDialog(dialog: DialogKind): void {
+  const ui = useUiStore.getState();
+  if (ui.dialogOpen && ui.dialog === dialog) useUiStore.setState({ dialogOpen: false });
 }
 
 export function endTurn(): void {
-  if (!isBusy()) submit({ type: 'EndTurn' });
+  if (canCommand()) submit({ type: 'EndTurn' });
 }
 
 export function resign(): void {
-  if (!isBusy()) submit({ type: 'Resign' });
+  if (canCommand()) submit({ type: 'Resign' });
 }
 
 /** Zooms by whole steps around a point in canvas device pixels (default: centre). */

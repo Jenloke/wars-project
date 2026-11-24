@@ -6,8 +6,8 @@ import { NO_TILE, NO_UNIT, type GameState, type TileIndex, type Unit, type UnitI
 import { isIndirect, unitCost } from './units';
 
 /**
- * Lists what the rules allow, for menus and (later) the AI. These functions use
- * the same predicates as the reducer, which remains the final authority.
+ * Lists what the rules allow, for menus and the AI. These functions use the same
+ * predicates as the reducer, which remains the final authority.
  */
 
 export interface UnloadOption {

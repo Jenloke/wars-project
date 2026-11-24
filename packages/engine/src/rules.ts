@@ -3,8 +3,9 @@ import { NO_UNIT, type GameState, type TileIndex, type Unit } from './types';
 import { hpPips, maxPips } from './units';
 
 /**
- * Predicates shared by action validation and by option listing, so the menu the
- * player sees and the rules the reducer enforces cannot drift apart.
+ * Predicates shared by action validation, option listing and the AI, so the menu
+ * the player sees, the moves the AI considers and the rules the reducer enforces
+ * cannot drift apart.
  */
 
 export function canJoinUnits(ruleset: CompiledRuleset, mover: Unit, target: Unit): boolean {

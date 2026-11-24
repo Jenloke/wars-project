@@ -407,6 +407,119 @@ button.primary {
   padding: 12px 16px 16px;
 }
 
+/* New game setup. */
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.dialog-body .dialog-status {
+  margin: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field select {
+  min-height: 36px;
+  padding: 6px 8px;
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.field select:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.seats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.seats legend {
+  margin-bottom: 4px;
+  padding: 0;
+}
+
+.seat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 8px 12px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+/* A pair of radio buttons drawn as one switch. */
+.segmented {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.segment {
+  position: relative;
+}
+
+.segment input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.segment span {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.segment + .segment span {
+  border-left: 1px solid var(--border);
+}
+
+.segment input:checked + span {
+  color: var(--accent-text);
+  background: var(--accent);
+  font-weight: 600;
+}
+
+.segment input:focus-visible + span {
+  outline: 2px solid var(--text);
+  outline-offset: -4px;
+}
+
+.badge {
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
 @media (max-width: 560px) {
   .slot {
     flex-direction: column;

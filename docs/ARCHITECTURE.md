@@ -1,7 +1,7 @@
 # Architecture
 
-Status: **Phase 1 approved; Phase 2 (save/load) implemented, awaiting approval.** Sections
-below describe the code as built.
+Status: **Phases 1 and 2 approved; Phase 3 (AI opponent) implemented, awaiting approval.**
+Sections below describe the code as built.
 Commit conventions are in [COMMITS.md](COMMITS.md).
 
 Run it: `pnpm install`, then `pnpm dev` (builds the sprite atlas and starts Vite).
@@ -13,6 +13,7 @@ Checks: `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm format:check`.
 | --------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | First map "Spann Island", transcribed exactly | Replaced by an original map, **Twin Fords** (section 5.3) | Spann Island is a level from the commercial game. The ASCII format, converter, legend, and property-check test are all kept; only the layout is original. |
 | "the damage table"                            | Original base-damage numbers, tuned for this game         | The formula shape is a genre mechanic; the commercial game's exact matrix is not copied.                                                                  |
+| Four workspace packages                       | A fifth, `packages/ai`, holds the computer opponent       | The AI then reaches the game only through the engine's public API, like any other player, and network play can reuse it outside the web app.              |
 
 Everything else in the spec stands. Unit names are generic military roles; faction
 names, commander names, art, and audio are original.
@@ -34,12 +35,23 @@ packages/
       combat.ts              # damage formula, preview, counterattack
       actions/               # one file per action family: validate + apply
       draft.ts               # copy-on-write working state
-      rules.ts               # predicates shared by the reducer and option listing
-      options.ts             # what a unit or base can do (menus, later the AI)
+      rules.ts               # predicates shared by the reducer, option listing and the AI
+      options.ts             # what a unit or base can do (menus and the AI)
       applyAction.ts         # reducer entry point
       hash.ts                # FNV-1a state hash (desync detection)
       controller.ts          # PlayerController interface
       save/                  # save format, replay verification, migrations
+    test/
+  ai/                        # computer opponent. Depends on the engine's public API only.
+    src/
+      chooseAction.ts        # entry point: the next action for the active player
+      board.ts               # per-decision read of the position: threats, danger
+      plan.ts                # capture assignments, property values
+      tactics.ts             # attack, capture and supply scoring
+      movement.ts            # roles, goal fields, best tile to move to
+      production.ts          # what to build, to counter the enemy army
+      distance.ts            # terrain-only Dijkstra fields
+      profile.ts             # tuning weights (DEFAULT_PROFILE)
     test/
   content/                   # data + zod schemas. Depends on engine types only.
     src/
@@ -64,14 +76,15 @@ apps/
       render/                # camera, terrain layer cache, autotile, unit layer, overlays, tweens
       input/                 # pointer + keyboard -> UI intents
       store/                 # zustand: UI state only
-      session/               # GameSession: game record + action loop + controllers
+      session/               # GameSession: game record + action loop; local and AI controllers
       saves/                 # local storage slots, autosave, file export/import
       ui/                    # React DOM: menus, panels, HUD
       App.tsx  main.tsx
 ```
 
-Dependency direction: `web -> sprites, content, engine`; `content -> engine (types)`;
-`engine -> nothing`. Enforced with ESLint `no-restricted-imports`.
+Dependency direction: `web -> ai, sprites, content, engine`; `ai -> engine`;
+`content -> engine (types)`; `engine -> nothing`. The AI's tests also load `content`, for
+the real ruleset and maps. Enforced with ESLint `no-restricted-imports`.
 
 ## 2. Coding standards
 
@@ -245,7 +258,10 @@ interface PlayerController {
 ```
 
 `GameSession` (in `apps/web/session`) loops: ask the active player's controller for
-an action, apply it, append to the log, publish the new state and events.
+an action, apply it, append to the log, publish the new state and events. A factory
+builds each seat's controller from the game's `setup`: `ai` seats get an `AiController`
+(section 7), every other seat a `LocalController` that waits for the UI to submit an
+action. Remote seats play locally until network play exists.
 
 ## 5. Maps
 
@@ -357,7 +373,72 @@ interface SaveData {
 - **Cost**: saving is one `JSON.stringify`; loading is one replay of the log plus two
   serializations of the final state.
 
-## 7. Sprite pipeline
+## 7. Computer opponent
+
+`chooseAction(ruleset, state, profile?)` (`packages/ai`) returns the next action for the
+active player. The `AiController` calls it once per action, so the AI reads the
+position afresh after every move and reacts to how each attack actually rolled. Its
+actions go through the reducer, the log and saves like anyone else's.
+
+**One decision**, in order of preference:
+
+1. **Tactics.** Every attack, capture and supply an unmoved unit could make this turn,
+   scored in funds; the best positive one is taken.
+   - _Attack_: expected damage over all luck rolls, times the target's cost, plus a kill
+     bonus; less the expected counterattack and part of the danger at the firing tile.
+     Only favourable trades score above zero. Hitting an enemy that would capture our
+     HQ next turn is worth as much as winning.
+   - _Capture_: the property's value (days of income, more for bases, HQs and enemy
+     property) if it finishes this turn, else a share for the progress made. Taking an
+     enemy HQ wins.
+   - _Supply_: what the refill is worth to adjacent friends low on fuel or ammo.
+2. **Movement.** Each unmoved unit gets a role and a goal field (terrain-only Dijkstra
+   to the goal): repair when worn down, walk to its assigned property, close in on
+   enemies it can hurt (artillery aims for its range band), escort friends, march on
+   enemy property, or step off a base it blocks. It moves to the reachable tile that
+   best trades progress against danger, terrain cover, a free base and guarding a
+   threatened HQ. Units nearest their goals move first.
+3. **Production.** At the free base nearest the enemy, the unit with the best value
+   against the enemy army: what it should take off that army over its life (damage per
+   engagement, either side starting it, divided by the share of its own HP it loses),
+   less its price and a penalty for types the army already has many of. Capturers are
+   kept while properties are unclaimed; funds are split across free bases.
+4. **End turn.**
+
+Every step acts with a unit (which is then spent) or fills a base, so the turn always
+ends. Every candidate is checked with `applyAction` before it is returned.
+
+**Reading the board** (`board.ts`, rebuilt per decision): which enemies could fire on
+each tile next turn (their reach, blocked by our units, plus weapon range; indirect
+units only from where they stand), where enemy capturers can reach, and a _danger_
+estimate per unit and tile: the worst attacker in full plus a share of the rest, less
+part of our counterattack. A caution factor scales danger by the army value ratio, so
+the stronger side presses on.
+
+**Capture plan** (`plan.ts`): capturers and unowned properties are paired cheapest
+first, by turns of walking less a priority for HQs, bases and enemy property, so each
+property gets one unit and a unit mid-capture keeps its property.
+
+**Fair play and determinism**: the AI sees units, terrain and funds, which are public
+without fog of war. It never reads `state.rng`, so it cannot foresee luck. Given the
+same state it always returns the same action (ties break by unit id and tile).
+
+**Tuning** lives in `DEFAULT_PROFILE`, not the ruleset: it changes how the AI plays,
+never what a log replays to, so it needs no ruleset id bump. Difficulty levels can be
+other profiles.
+
+**Cost**: a decision on Twin Fords takes well under a millisecond; a full turn with 20
+units a side on a 30x20 map is tested to finish within budget.
+
+**In the web app** the `AiController` waits until the last move has finished
+animating and no dialog is open, then pauses 250 ms so a player can follow each move;
+the camera and cursor follow its actions. If the reducer ever refused one of its
+actions, it would end the turn rather than retry forever.
+
+**Not yet**: the AI does not load or unload transports, join units, or save funds for
+a later build. Mirror matches on a symmetric map tend toward long wars of attrition.
+
+## 8. Sprite pipeline
 
 1. **Author**: one SVG per sprite frame in `packages/sprites/src/svg`, 48x48 viewBox,
    `<polygon>` elements only, fills drawn only from `palette.ts`. A lint step in the
@@ -380,7 +461,7 @@ interface SaveData {
    data-driven: road, bridge, and coast opt in now; river, shoal, and pipes can later.
    Coast edges are an overlay pass on sea tiles using the same mask against "is land".
 
-## 8. Renderer and UI
+## 9. Renderer and UI
 
 - One `<canvas>` in a React component; DOM menus/panels/HUD are positioned over it.
 - `render(state, anim, camera, ui)` is a pure read of its inputs (rule 8).
@@ -396,30 +477,36 @@ interface SaveData {
   by engine `events`, live in transient animation state, and block input until done.
 - **Zustand (UI only)**: cursor, interaction mode (`idle | moving | actionMenu |
 targeting | unloading | buildMenu | mapMenu`), selected unit, cached reachable set,
-  previewed path, whether the save dialog is open, and camera. Game state lives in
+  previewed path, which dialog is open (save and load, or new game), and camera. Game
+  state lives in
   `GameSession`, not in the store; React subscribes to it through
   `useSyncExternalStore`.
 - **Input**: mouse (click select/confirm, right-click cancel, drag pan, wheel zoom) and
-  keyboard (arrows/WASD cursor, Enter/Space confirm, Esc cancel, E end turn).
+  keyboard (arrows/WASD cursor, Enter/Space confirm, Esc cancel, E end turn). During a
+  computer turn the cursor still moves for inspection, but no orders are accepted.
+- **New game**: a dialog picks the map and whether a person or the computer plays each
+  side (default: you against the computer).
 - **Layout**: canvas fills the viewport; panels dock to the side on desktop and to the
   bottom below about 900px width.
 
-## 9. Testing
+## 10. Testing
 
-| Area        | Tests                                                                                                                                                            |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Movement    | range per move type and terrain, fuel limit, blocking, pass-through                                                                                              |
-| Combat      | formula against hand-computed cases, luck determinism per seed, counterattack, indirect rules, ammo                                                              |
-| Capture     | progress by HP, reset on leaving, HQ capture wins                                                                                                                |
-| Supply      | property repair cost and cap, resupply, APC supply, joining                                                                                                      |
-| Win         | HQ capture, rout                                                                                                                                                 |
-| Determinism | same seed + same log gives the same state hash                                                                                                                   |
-| Save        | save -> JSON -> load gives an identical state; edited, truncated, illegal and foreign-rules saves are refused; migration chain; slot index rebuild; storage full |
-| Map         | Twin Fords converts and matches the property check in 5.3                                                                                                        |
-| Content     | all content passes zod; every armed unit has targets; primary weapons need ammo                                                                                  |
-| Perf        | range query and 1000 random legal actions on a 30x20 map within a time budget                                                                                    |
+| Area        | Tests                                                                                                                                                                                                                                                                                                            |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Movement    | range per move type and terrain, fuel limit, blocking, pass-through                                                                                                                                                                                                                                              |
+| Combat      | formula against hand-computed cases, luck determinism per seed, counterattack, indirect rules, ammo                                                                                                                                                                                                              |
+| Capture     | progress by HP, reset on leaving, HQ capture wins                                                                                                                                                                                                                                                                |
+| Supply      | property repair cost and cap, resupply, APC supply, joining                                                                                                                                                                                                                                                      |
+| Win         | HQ capture, rout                                                                                                                                                                                                                                                                                                 |
+| Determinism | same seed + same log gives the same state hash                                                                                                                                                                                                                                                                   |
+| Save        | save -> JSON -> load gives an identical state; edited, truncated, illegal and foreign-rules saves are refused; migration chain; slot index rebuild; storage full                                                                                                                                                 |
+| Map         | Twin Fords converts and matches the property check in 5.3                                                                                                                                                                                                                                                        |
+| Content     | all content passes zod; every armed unit has targets; primary weapons need ammo                                                                                                                                                                                                                                  |
+| Perf        | range query and 1000 random legal actions on a 30x20 map within a time budget                                                                                                                                                                                                                                    |
+| AI          | distance fields, threat map and danger; attack forecasts; favourable trades only; kills first; captures and HQ defence; retreat, artillery spacing, base clearing; capture plan; builds that counter the enemy; beats an idle opponent; plays itself legally; deterministic; ignores the RNG; turn time on 30x20 |
+| Session     | computer turns follow local ones; local input ignored on computer turns; computer moves save and replay exactly; a computer seat resumes on load; controller waits for the board and ends the turn after a refused move                                                                                          |
 
-## 10. Phase 1 build order
+## 11. Phase 1 build order
 
 1. Workspace scaffold, lint, tsconfig, CI scripts
 2. Engine: types, ruleset compile, grid, RNG, pathfinding, with tests

@@ -1,7 +1,6 @@
 import { factions } from '@tactics/content';
 import type { WinReason } from '@tactics/engine';
-import { openGameDialog } from '../input/interaction';
-import { startNewGame } from '../session/game';
+import { openGameDialog, openNewGameDialog } from '../input/interaction';
 import { useGameState } from './hooks';
 
 const REASONS: Readonly<Record<WinReason, string>> = {
@@ -23,6 +22,9 @@ export function TurnBanner() {
       role="status"
     >
       Day {state.day} · {faction?.name ?? `Player ${state.activePlayer + 1}`}
+      {state.players[state.activePlayer]!.controller === 'ai' && (
+        <span className="muted"> · Computer</span>
+      )}
     </div>
   );
 }
@@ -43,8 +45,8 @@ export function GameOver() {
           <button type="button" onClick={openGameDialog}>
             Load a save
           </button>
-          <button type="button" className="primary" autoFocus onClick={() => startNewGame()}>
-            New game
+          <button type="button" className="primary" autoFocus onClick={openNewGameDialog}>
+            New game…
           </button>
         </div>
       </div>

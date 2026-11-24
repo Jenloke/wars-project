@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@tactics/ai": "workspace:*",
     "@tactics/content": "workspace:*",
     "@tactics/engine": "workspace:*",
     "@tactics/sprites": "workspace:*",
