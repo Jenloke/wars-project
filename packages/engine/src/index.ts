@@ -6,6 +6,7 @@ export * from './units';
 export * from './pathfinding';
 export * from './combat';
 export * from './options';
+export * from './rules';
 export * from './createGame';
 export * from './hash';
 export type { PlayerController } from './controller';
