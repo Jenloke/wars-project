@@ -4,14 +4,17 @@ import {
   createSave,
   type Action,
   type CompiledRuleset,
+  type ControllerKind,
   type GameEvent,
   type GameSetup,
   type GameState,
   type MapData,
   type PlayerController,
+  type PlayerIndex,
   type RestoredGame,
   type SaveData,
 } from '@tactics/engine';
+import { AiController } from './aiController';
 import { LocalController } from './localController';
 
 export type Listener = () => void;
@@ -21,11 +24,29 @@ export type EventListener = (
   events: readonly GameEvent[],
 ) => void;
 
-/** A fresh hot-seat game on `map`, ready to hand to `GameSession`. */
-export function newGameRecord(ruleset: CompiledRuleset, map: MapData, seed: number): RestoredGame {
+/** Creates the controller for one seat of a game. */
+export type ControllerFactory = (kind: ControllerKind, seat: PlayerIndex) => PlayerController;
+
+/**
+ * Computer seats get an AI; everything else is played on this device. Remote
+ * seats arrive with network play and fall back to local play until then.
+ */
+export const defaultControllers: ControllerFactory = (kind) =>
+  kind === 'ai' ? new AiController() : new LocalController();
+
+/**
+ * A fresh game on `map`, ready to hand to `GameSession`. `seats` says who plays
+ * each player slot; slots it does not cover are played on this device.
+ */
+export function newGameRecord(
+  ruleset: CompiledRuleset,
+  map: MapData,
+  seed: number,
+  seats: readonly ControllerKind[] = [],
+): RestoredGame {
   const setup: GameSetup = {
     seed: seed >>> 0,
-    players: map.players.map(() => ({ controller: 'local' as const })),
+    players: map.players.map((_slot, i) => ({ controller: seats[i] ?? 'local' })),
   };
   const initial = createGame(ruleset, map, setup);
   return { map, setup, initial, actions: [], state: initial };
@@ -50,6 +71,7 @@ export class GameSession {
   constructor(
     readonly ruleset: CompiledRuleset,
     game: RestoredGame,
+    private readonly createController: ControllerFactory = defaultControllers,
   ) {
     this.game = game;
     this.state = game.state;
@@ -77,6 +99,20 @@ export class GameSession {
 
   get actionCount(): number {
     return this.actions.length;
+  }
+
+  /** The current game's map and seat setup. */
+  get map(): MapData {
+    return this.game.map;
+  }
+
+  get setup(): GameSetup {
+    return this.game.setup;
+  }
+
+  /** True if the active player gives their orders on this device. */
+  isLocalTurn(): boolean {
+    return this.controllers[this.state.activePlayer] instanceof LocalController;
   }
 
   /**
@@ -110,8 +146,9 @@ export class GameSession {
 
   private start(game: RestoredGame): void {
     this.actions = game.actions.slice();
-    // Every seat is played on this device until AI and network controllers exist.
-    this.controllers = game.setup.players.map(() => new LocalController());
+    this.controllers = game.setup.players.map((player, seat) =>
+      this.createController(player.controller, seat),
+    );
     void this.run(this.generation);
   }
 
