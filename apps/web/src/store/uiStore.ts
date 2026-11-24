@@ -11,6 +11,9 @@ import type { Camera, Viewport } from '../render/camera';
 export type Mode =
   'idle' | 'moving' | 'actionMenu' | 'targeting' | 'unloading' | 'buildMenu' | 'mapMenu';
 
+/** The modal dialogs. At most one is open at a time. */
+export type DialogKind = 'saves' | 'newGame';
+
 /**
  * UI state only. The game itself lives in `GameSession`; nothing here is needed
  * to reproduce a game, and nothing here is saved.
@@ -32,8 +35,10 @@ export interface UiState {
   readonly menuTile: TileIndex;
   /** True while an action's animation plays; input is ignored. */
   readonly animating: boolean;
-  /** True while the save and load dialog is open; map input is ignored. */
+  /** True while a modal dialog is open; map input is ignored and the computer waits. */
   readonly dialogOpen: boolean;
+  /** Which dialog is open, while `dialogOpen`. */
+  readonly dialog: DialogKind;
   readonly camera: Camera;
   readonly viewport: Viewport;
 }
@@ -54,6 +59,7 @@ export const useUiStore = create<UiState>(() => ({
   cursor: 0,
   animating: false,
   dialogOpen: false,
+  dialog: 'saves',
   camera: { x: 0, y: 0, zoom: 1 },
   viewport: { width: 1, height: 1, dpr: 1 },
 }));

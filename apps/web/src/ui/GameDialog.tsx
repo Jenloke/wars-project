@@ -1,10 +1,11 @@
 import { factions, readSave } from '@tactics/content';
 import type { RestoredGame } from '@tactics/engine';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { closeGameDialog } from '../input/interaction';
+import { closeDialog, openNewGameDialog } from '../input/interaction';
 import { downloadSave, readSaveFile } from '../saves/saveFiles';
 import { SLOT_IDS, SLOT_LABELS, type SlotId, type SlotSummary } from '../saves/saveStore';
-import { ruleset, saveStore, savesPersist, session, startNewGame } from '../session/game';
+import { ruleset, saveStore, savesPersist, session } from '../session/game';
+import { confirmReplace } from './confirmReplace';
 
 interface Status {
   readonly tone: 'info' | 'error';
@@ -35,14 +36,6 @@ function formatSavedAt(savedAt: string): string {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-/** Asks before discarding a game that has moves in it. */
-function confirmReplace(): boolean {
-  return (
-    session.actionCount === 0 ||
-    window.confirm('Replace the current game? Moves not saved to a slot or file will be lost.')
-  );
 }
 
 function now(): string {
@@ -133,18 +126,12 @@ export function GameDialog() {
     replaceGame(game);
   };
 
-  const newGame = () => {
-    if (!confirmReplace()) return;
-    startNewGame();
-    close();
-  };
-
   return (
     <dialog
       ref={dialogRef}
       className="game-dialog"
       aria-labelledby="game-dialog-title"
-      onClose={closeGameDialog}
+      onClose={() => closeDialog('saves')}
     >
       <header className="dialog-header">
         <h2 id="game-dialog-title">Save and load</h2>
@@ -227,8 +214,8 @@ export function GameDialog() {
           hidden
           onChange={(event) => void importFile(event)}
         />
-        <button type="button" className="primary" onClick={newGame}>
-          New game
+        <button type="button" className="primary" onClick={openNewGameDialog}>
+          New game…
         </button>
       </footer>
     </dialog>

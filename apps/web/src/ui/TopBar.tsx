@@ -1,6 +1,7 @@
 import { factions } from '@tactics/content';
 import { endTurn, openGameDialog, zoomBy } from '../input/interaction';
 import { MAX_ZOOM, MIN_ZOOM } from '../render/camera';
+import { session } from '../session/game';
 import { useUiStore } from '../store/uiStore';
 import { useGameState } from './hooks';
 
@@ -23,6 +24,12 @@ export function TopBar() {
   const player = state.players[state.activePlayer]!;
   const faction = factions[state.activePlayer];
   const playing = state.status.kind === 'playing';
+  const localTurn = session.isLocalTurn();
+  const hint = !playing
+    ? ''
+    : localTurn
+      ? HINTS[mode]
+      : `${faction?.name ?? 'The computer'} is moving…`;
 
   return (
     <header className="top-bar">
@@ -31,12 +38,15 @@ export function TopBar() {
         <span className="faction">
           <span className="faction-dot" style={{ background: faction?.color }} />
           {faction?.name ?? `Player ${state.activePlayer + 1}`}
+          {player.controller === 'ai' && <span className="badge">Computer</span>}
         </span>
         <span className="funds" title="Funds">
           {player.funds.toLocaleString()} G
         </span>
       </div>
-      <p className="hint">{playing ? HINTS[mode] : ''}</p>
+      <p className="hint" aria-live="polite">
+        {hint}
+      </p>
       <div className="controls">
         <button
           type="button"
@@ -61,7 +71,7 @@ export function TopBar() {
           type="button"
           className="primary"
           onClick={endTurn}
-          disabled={!playing || animating || mode !== 'idle'}
+          disabled={!playing || !localTurn || animating || mode !== 'idle'}
         >
           End turn
         </button>

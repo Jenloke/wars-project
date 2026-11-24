@@ -4,12 +4,14 @@ import { GameDialog } from './ui/GameDialog';
 import { useKeyboardControls } from './ui/hooks';
 import { InfoPanel } from './ui/InfoPanel';
 import { Menus } from './ui/Menus';
+import { NewGameDialog } from './ui/NewGameDialog';
 import { GameOver, TurnBanner } from './ui/Overlays';
 import { TopBar } from './ui/TopBar';
 
 export function App() {
   useKeyboardControls();
   const dialogOpen = useUiStore((ui) => ui.dialogOpen);
+  const dialog = useUiStore((ui) => ui.dialog);
   return (
     <div className="app">
       <TopBar />
@@ -20,7 +22,7 @@ export function App() {
       </main>
       <InfoPanel />
       <GameOver />
-      {dialogOpen && <GameDialog />}
+      {dialogOpen && (dialog === 'newGame' ? <NewGameDialog /> : <GameDialog />)}
     </div>
   );
 }
