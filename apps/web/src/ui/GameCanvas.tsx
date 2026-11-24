@@ -1,7 +1,8 @@
+import { NO_TILE, type GameEvent, type TileIndex } from '@tactics/engine';
 import { loadAtlas } from '@tactics/sprites';
 import { useEffect, useRef, useState } from 'react';
 import { cancel, clickTile, moveCursor, panBy, zoomBy } from '../input/interaction';
-import { clampCamera, tileAtPoint } from '../render/camera';
+import { clampCamera, panToTile, tileAtPoint } from '../render/camera';
 import { playback } from '../render/playback';
 import { createRenderer, idleFrameAt } from '../render/renderer';
 import { ruleset, session } from '../session/game';
@@ -9,6 +10,27 @@ import { IDLE_SELECTION, useUiStore } from '../store/uiStore';
 
 /** Pointer travel, in CSS pixels, before a press becomes a pan instead of a click. */
 const DRAG_THRESHOLD = 6;
+
+/** Where an action happened: where its unit ended up, or what it hit or built. */
+function focusOf(events: readonly GameEvent[]): TileIndex {
+  for (const event of events) {
+    switch (event.type) {
+      case 'UnitMoved':
+        return event.path[event.path.length - 1] ?? event.from;
+      case 'Attacked':
+        return event.target;
+      case 'UnitBuilt':
+      case 'CaptureProgress':
+      case 'Captured':
+        return event.at;
+      case 'Unloaded':
+        return event.to;
+      default:
+        break;
+    }
+  }
+  return NO_TILE;
+}
 
 /**
  * The map canvas. React only mounts it; drawing runs in a `requestAnimationFrame`
@@ -66,6 +88,18 @@ export function GameCanvas() {
     const unsubscribeEvents = session.onEvents((previous, next, events) => {
       playback.play(previous, next, events, performance.now());
       if (playback.active) useUiStore.setState({ animating: true });
+
+      // Follow the computer's moves: bring each into view and point the cursor
+      // at it, so the info panel shows the unit that just acted.
+      if (previous.players[previous.activePlayer]!.controller !== 'ai') return;
+      const tile = focusOf(events);
+      if (tile === NO_TILE) return;
+      const { camera, viewport } = useUiStore.getState();
+      const panned = panToTile(camera, viewport, tile, next.width);
+      useUiStore.setState({
+        cursor: tile,
+        camera: clampCamera(panned, viewport, next.width, next.height),
+      });
     });
 
     void Promise.all([loadAtlas(1), loadAtlas(2)]).then(
