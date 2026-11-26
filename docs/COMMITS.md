@@ -29,7 +29,7 @@ and why. The format is [Conventional Commits](https://www.conventionalcommits.or
 | `refactor` | Restructuring with no behaviour change                                 |
 | `test`     | Adding or correcting tests only                                        |
 | `content`  | Data-only changes: unit stats, terrain, damage table, maps, commanders |
-| `art`      | Sprite SVGs, palette, atlas output                                     |
+| `art`      | Sprite SVGs and palette                                                |
 | `docs`     | Documentation only                                                     |
 | `build`    | Tooling, dependencies, workspace config, scripts                       |
 | `chore`    | Housekeeping that fits nothing above                                   |
@@ -67,8 +67,9 @@ it is usually two commits (engine first, then the consumer).
    format or the map JSON format uses `!` after the scope and a `BREAKING CHANGE:`
    footer. It bumps `SAVE_VERSION` and adds a migration in
    `packages/engine/src/save/migrations.ts` (and bumps `formatVersion` for map changes).
-5. **Generated files go with their source.** Regenerated atlas output is committed in
-   the same commit as the SVG or palette change that caused it.
+5. **Generated files go with their source.** A regenerated file (the lockfile, say) is
+   committed with the change that caused it. Sprites have no generated output: the SVGs
+   are rasterised at runtime.
 6. **Each commit passes** `pnpm typecheck`, `pnpm lint`, `pnpm format:check` and
    `pnpm test`.
 
@@ -109,7 +110,7 @@ REPLAY-BREAKING: none, results are identical.
 ```
 
 ```
-art(sprites): redraw medium tank turret and rebuild the atlas
+art(sprites): redraw medium tank turret
 ```
 
 ## Branches and phases
