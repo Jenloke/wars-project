@@ -1,61 +1,81 @@
 import type { RawDamageEntry } from '@tactics/engine';
 
 /**
- * Base damage percent, attacker (row) against defender (column), at full HP on
- * open ground. `_` means the weapon cannot hit that target. These numbers are
- * this game's own balance and are expected to change with playtesting. The tables
- * are aligned by hand, so Prettier leaves them alone.
+ * Base damage percent, by attacker and then defender, at full HP on open
+ * ground. A defender missing from an attacker's row cannot be hit by that
+ * weapon. Rows are sparse, so a new unit needs its own row and entries only in
+ * the rows of units that can hit it. These numbers are this game's own balance
+ * and are expected to change with playtesting; Prettier leaves the hand-grouped
+ * rows alone.
  */
-
-const _ = null;
-type Row = readonly (number | null)[];
-
-const DEFENDERS = [
-  'infantry',
-  'mech',
-  'recon',
-  'tank',
-  'mediumTank',
-  'apc',
-  'artillery',
-  'rockets',
-  'antiAir',
-  'missiles',
-] as const;
+type DamageTable = Readonly<Record<string, Readonly<Record<string, number>>>>;
 
 /** Primary weapons: cannons, shells and rockets. Limited by ammo. */
 // prettier-ignore
-const PRIMARY: Readonly<Record<string, Row>> = {
-  //            inf  mech recon tank  med  apc  art  rock  aa   miss
-  mech:        [  _,   _,  78,  48,  18,  68,  62,  76,  58,  76],
-  tank:        [  _,   _,  82,  52,  14,  72,  68,  82,  62,  82],
-  mediumTank:  [  _,   _, 100,  80,  50, 100, 100, 100, 100, 100],
-  artillery:   [ 88,  82,  78,  68,  42,  68,  72,  78,  72,  78],
-  rockets:     [ 92,  88,  88,  78,  52,  78,  78,  82,  82,  88],
-  antiAir:     [100, 100,  58,  22,   8,  48,  48,  52,  42,  52],
+const PRIMARY: DamageTable = {
+  mech: {
+    recon: 78, tank: 48, mediumTank: 18, apc: 68, artillery: 62, rockets: 76, antiAir: 58, missiles: 76,
+  },
+  tank: {
+    recon: 82, tank: 52, mediumTank: 14, apc: 72, artillery: 68, rockets: 82, antiAir: 62, missiles: 82,
+  },
+  mediumTank: {
+    recon: 100, tank: 80, mediumTank: 50, apc: 100, artillery: 100, rockets: 100, antiAir: 100, missiles: 100,
+  },
+  artillery: {
+    infantry: 88, mech: 82, recon: 78, tank: 68, mediumTank: 42, apc: 68, artillery: 72, rockets: 78,
+    antiAir: 72, missiles: 78,
+  },
+  rockets: {
+    infantry: 92, mech: 88, recon: 88, tank: 78, mediumTank: 52, apc: 78, artillery: 78, rockets: 82,
+    antiAir: 82, missiles: 88,
+  },
+  antiAir: {
+    infantry: 100, mech: 100, recon: 58, tank: 22, mediumTank: 8, apc: 48, artillery: 48, rockets: 52,
+    antiAir: 42, missiles: 52,
+  },
 };
 
 /** Secondary weapons: machine guns. Never run out. */
 // prettier-ignore
-const SECONDARY: Readonly<Record<string, Row>> = {
-  //            inf  mech recon tank  med  apc  art  rock  aa   miss
-  infantry:    [ 50,  40,  10,   4,   1,  12,  14,  22,   4,  22],
-  mech:        [ 60,  50,  16,   5,   1,  18,  28,  32,   5,  32],
-  recon:       [ 68,  58,  32,   5,   1,  42,  42,  52,   4,  26],
-  tank:        [ 72,  66,  38,   5,   1,  42,  42,  52,   5,  28],
-  mediumTank:  [100,  90,  42,   7,   1,  42,  42,  52,   6,  32],
+const SECONDARY: DamageTable = {
+  infantry: {
+    infantry: 50, mech: 40, recon: 10, tank: 4, mediumTank: 1, apc: 12, artillery: 14, rockets: 22,
+    antiAir: 4, missiles: 22,
+  },
+  mech: {
+    infantry: 60, mech: 50, recon: 16, tank: 5, mediumTank: 1, apc: 18, artillery: 28, rockets: 32,
+    antiAir: 5, missiles: 32,
+  },
+  recon: {
+    infantry: 68, mech: 58, recon: 32, tank: 5, mediumTank: 1, apc: 42, artillery: 42, rockets: 52,
+    antiAir: 4, missiles: 26,
+  },
+  tank: {
+    infantry: 72, mech: 66, recon: 38, tank: 5, mediumTank: 1, apc: 42, artillery: 42, rockets: 52,
+    antiAir: 5, missiles: 28,
+  },
+  mediumTank: {
+    infantry: 100, mech: 90, recon: 42, tank: 7, mediumTank: 1, apc: 42, artillery: 42, rockets: 52,
+    antiAir: 6, missiles: 32,
+  },
 };
 
 function buildEntries(): RawDamageEntry[] {
   const entries: RawDamageEntry[] = [];
   const attackers = new Set([...Object.keys(PRIMARY), ...Object.keys(SECONDARY)]);
   for (const attacker of attackers) {
-    DEFENDERS.forEach((defender, column) => {
-      const primary = PRIMARY[attacker]?.[column] ?? undefined;
-      const secondary = SECONDARY[attacker]?.[column] ?? undefined;
-      if (primary === undefined && secondary === undefined) return;
-      entries.push({ attacker, defender, primary, secondary });
-    });
+    const primary = PRIMARY[attacker] ?? {};
+    const secondary = SECONDARY[attacker] ?? {};
+    const defenders = new Set([...Object.keys(primary), ...Object.keys(secondary)]);
+    for (const defender of defenders) {
+      entries.push({
+        attacker,
+        defender,
+        primary: primary[defender],
+        secondary: secondary[defender],
+      });
+    }
   }
   return entries;
 }
