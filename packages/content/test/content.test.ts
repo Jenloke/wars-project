@@ -5,7 +5,8 @@ import {
   maps,
   MapRegistry,
   ruleset,
-  terrainVisuals,
+  terrainVisual,
+  unitVisual,
   TWIN_FORDS_ASCII,
   twinFords,
   validateMap,
@@ -44,8 +45,20 @@ describe('ruleset', () => {
     }
   });
 
-  it('has a visual for every terrain type', () => {
-    for (const def of ruleset.terrain) expect(terrainVisuals[def.id]).toBeDefined();
+  it('draws terrain and units by convention unless a visual says otherwise', () => {
+    expect(terrainVisual('forest', false)).toEqual({
+      sprite: 'terrain.forest',
+      fallback: 'terrain.unknown',
+    });
+    expect(terrainVisual('city', true)).toMatchObject({ sprite: 'building.city' });
+    expect(terrainVisual('sea', false).overlay?.sprite).toBe('terrain.coast');
+    expect(terrainVisual('road', false).autotile?.connectsTo).toContain('bridge');
+    expect(unitVisual('tank', 'tread')).toEqual({
+      sprite: 'unit.tank',
+      fallback: 'unit.unknown',
+      lift: 0,
+    });
+    expect(unitVisual('anything', 'air').lift).toBeGreaterThan(0);
   });
 });
 

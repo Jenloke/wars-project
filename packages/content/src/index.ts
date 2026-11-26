@@ -22,13 +22,17 @@ export {
 export { TWIN_FORDS_ASCII, twinFords } from './maps/twinFords';
 export { mapSchema, rulesetSchema } from './schemas';
 export {
+  FALLBACK_SPRITES,
   MASK_EAST,
   MASK_NORTH,
   MASK_SOUTH,
   MASK_WEST,
+  terrainVisual,
   terrainVisuals,
-  unitSpriteId,
+  unitVisual,
+  unitVisuals,
   type AutotileRule,
   type TerrainVisual,
+  type UnitVisual,
 } from './visuals';
 export { actionSchema, readSave, saveSchema } from './saves';

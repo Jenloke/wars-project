@@ -3,7 +3,7 @@ import {
   MASK_NORTH,
   MASK_SOUTH,
   MASK_WEST,
-  terrainVisuals,
+  terrainVisual,
   type AutotileRule,
 } from '@tactics/content';
 import { NO_OWNER, type CompiledRuleset, type GameState } from '@tactics/engine';
@@ -48,12 +48,11 @@ function compileAutotile(ruleset: CompiledRuleset, sprite: string, rule: Autotil
 /** Resolves the content's visual data to sprite references, once per ruleset. */
 export function compileTerrainSprites(ruleset: CompiledRuleset): TerrainSprite[] {
   return ruleset.terrain.map((terrain) => {
-    const visual = terrainVisuals[terrain.id];
-    if (visual === undefined) throw new Error(`Terrain "${terrain.id}" has no visual`);
+    const visual = terrainVisual(terrain.id, terrain.isProperty);
     const autotile = visual.autotile && compileAutotile(ruleset, visual.sprite, visual.autotile);
     return {
       base: autotile ? undefined : getSprite(visual.sprite),
-      team: visual.team ?? false,
+      team: terrain.isProperty,
       autotile,
       overlay:
         visual.overlay && compileAutotile(ruleset, visual.overlay.sprite, visual.overlay.autotile),

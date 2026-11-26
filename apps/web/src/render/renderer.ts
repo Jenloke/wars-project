@@ -1,4 +1,4 @@
-import { MASK_EAST, MASK_NORTH, MASK_SOUTH, MASK_WEST, unitSpriteId } from '@tactics/content';
+import { MASK_EAST, MASK_NORTH, MASK_SOUTH, MASK_WEST, unitVisual } from '@tactics/content';
 import {
   hpPips,
   maxPips,
@@ -80,7 +80,9 @@ export function createRenderer(
 
   // Sprite IDs are resolved to atlas positions once, not per frame.
   const terrainSprites = compileTerrainSprites(ruleset);
-  const unitSprites = ruleset.units.map((unit) => getSprite(unitSpriteId(unit.id)));
+  const unitSprites = ruleset.units.map((unit) =>
+    getSprite(unitVisual(unit.id, ruleset.moveTypes[unit.moveType]!).sprite),
+  );
   const sprite = {
     cursor: getSprite('ui.cursor'),
     moveTile: getSprite('ui.moveTile'),
