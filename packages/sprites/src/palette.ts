@@ -71,5 +71,10 @@ export const TEAM_RAMPS: readonly TeamRamp[] = [
 ];
 
 export const FACTION_COUNT = 4;
-/** Atlas variant index of the neutral ramp. */
+/** Index of the neutral ramp in `TEAM_RAMPS`. */
 export const NEUTRAL_VARIANT = FACTION_COUNT;
+
+/** The ramp a sprite owned by player slot `owner` is drawn in; neutral for `owner < 0`. */
+export function teamRamp(owner: number): TeamRamp {
+  return TEAM_RAMPS[owner < 0 ? NEUTRAL_VARIANT : owner % FACTION_COUNT]!;
+}
