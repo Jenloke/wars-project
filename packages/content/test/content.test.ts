@@ -34,6 +34,26 @@ describe('ruleset', () => {
     }
   });
 
+  it('only lets a property build units that can stand on it', () => {
+    for (const terrain of compiled.terrain) {
+      for (const unitType of terrain.builds) {
+        const moveType = compiled.units[unitType]!.moveType;
+        const index = compiled.terrainIndex.get(terrain.id)!;
+        expect(compiled.moveCost[moveType * compiled.terrainCount + index]).toBeLessThan(255);
+      }
+    }
+  });
+
+  it('repairs naval units in ports and aircraft at airports', () => {
+    const repairs = (terrain: string) => {
+      const def = compiled.terrain[compiled.terrainIndex.get(terrain)!]!;
+      return compiled.moveTypes.filter((_moveType, i) => def.repairs[i] === 1);
+    };
+    expect(repairs('port')).toEqual(['sea', 'lander']);
+    expect(repairs('airport')).toEqual(['air']);
+    expect(repairs('city')).toEqual(['foot', 'mech', 'tread', 'tire']);
+  });
+
   it('only gives primary weapons to units that carry ammo', () => {
     for (let attacker = 0; attacker < compiled.unitCount; attacker++) {
       const row = compiled.primaryDamage.subarray(
@@ -81,6 +101,21 @@ describe('ASCII converter', () => {
       { x: 2, y: 0, owner: null },
       { x: 2, y: 1, owner: 1 },
     ]);
+  });
+
+  it('reads shoals, reefs, ports and airports', () => {
+    const map = asciiToMap(':*QPpTAa', meta);
+    expect(map.tiles).toEqual([
+      'shoal',
+      'reef',
+      'port',
+      'port',
+      'port',
+      'airport',
+      'airport',
+      'airport',
+    ]);
+    expect(map.properties.map((p) => p.owner)).toEqual([null, 0, 1, null, 0, 1]);
   });
 
   it('reports ragged rows and unknown characters with the row number', () => {

@@ -48,8 +48,21 @@ export const FALLBACK_SPRITES = {
   terrain: 'terrain.unknown',
 } as const;
 
-const ROAD_NETWORK = ['road', 'bridge', 'city', 'base', 'hq'];
-const LAND = ['plains', 'road', 'forest', 'mountain', 'city', 'base', 'hq'];
+const ROAD_NETWORK = ['road', 'bridge', 'city', 'base', 'hq', 'port', 'airport'];
+/** Terrain a coastline is drawn against. */
+const LAND = [
+  'plains',
+  'road',
+  'forest',
+  'mountain',
+  'city',
+  'base',
+  'hq',
+  'shoal',
+  'port',
+  'airport',
+];
+const COAST = { sprite: 'terrain.coast', autotile: { connectsTo: LAND } };
 
 /** A bridge runs north-south only when it has no east or west connection. */
 function bridgeVariants(): Record<number, string> {
@@ -68,7 +81,8 @@ function bridgeVariants(): Record<number, string> {
 export const terrainVisuals: Readonly<Record<string, Partial<TerrainVisual>>> = {
   road: { autotile: { connectsTo: ROAD_NETWORK } },
   bridge: { autotile: { connectsTo: ROAD_NETWORK, variants: bridgeVariants() } },
-  sea: { overlay: { sprite: 'terrain.coast', autotile: { connectsTo: LAND } } },
+  sea: { overlay: COAST },
+  reef: { overlay: COAST },
 };
 
 /** How terrain `id` is drawn. `isProperty` picks the building convention. */

@@ -7,3 +7,5 @@ export const moveTypes = ['foot', 'mech', 'tread', 'tire', 'air', 'sea', 'lander
 export type MoveType = (typeof moveTypes)[number];
 
 export const LAND_MOVE_TYPES: readonly MoveType[] = ['foot', 'mech', 'tread', 'tire'];
+export const NAVAL_MOVE_TYPES: readonly MoveType[] = ['sea', 'lander'];
+export const AIR_MOVE_TYPES: readonly MoveType[] = ['air'];
