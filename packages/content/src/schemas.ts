@@ -52,7 +52,17 @@ export const commanderSchema = z.object({
   name: z.string().min(1),
   modifiers: z.array(
     z.object({
-      hook: z.enum(['attack', 'defence', 'movement', 'cost', 'powerGain']),
+      hook: z.enum([
+        'attack',
+        'defence',
+        'movement',
+        'cost',
+        'range',
+        'capture',
+        'repair',
+        'regen',
+        'income',
+      ]),
       units: z.array(id).optional(),
       value: z.number().int(),
     }),

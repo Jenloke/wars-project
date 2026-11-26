@@ -2,7 +2,7 @@ import { defeatPlayer, patchUnit, relocateUnit, writableTiles, type Draft } from
 import type { CompiledRuleset } from '../ruleset';
 import { canCaptureAt } from '../rules';
 import { NO_OWNER, type Action } from '../types';
-import { hpPips } from '../units';
+import { captureAmount } from '../units';
 import { beginUnitAction, type ActionError } from './common';
 
 export function applyCapture(
@@ -18,7 +18,7 @@ export function applyCapture(
   const unit = relocateUnit(ruleset, draft, ctx.unit, action.path, ctx.cost, true);
   patchUnit(draft, unit.id, { moved: true });
 
-  const remaining = draft.state.capture[tile]! - hpPips(ruleset, unit.hp);
+  const remaining = draft.state.capture[tile]! - captureAmount(ruleset, draft.state, unit);
   const capture = writableTiles(draft, 'capture');
   if (remaining > 0) {
     capture[tile] = remaining;

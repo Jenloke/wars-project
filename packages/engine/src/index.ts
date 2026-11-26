@@ -3,6 +3,7 @@ export * from './types';
 export * from './ruleset';
 export * from './grid';
 export * from './units';
+export * from './commanders';
 export * from './pathfinding';
 export * from './combat';
 export * from './options';

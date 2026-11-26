@@ -239,7 +239,7 @@ describe('commander modifiers', () => {
     const id = unitAt(state, 0, 0).id;
     expect(previewAttack(compiled, state, id, 0, 1)!.min).toBe(60);
 
-    const striker = compiled.commanders[1]!;
+    const striker = compiled.commanders[1]!.passive;
     expect(striker.movement[compiled.unitIndex.get('infantry')!]).toBe(1);
     expect(striker.movement[compiled.unitIndex.get('tank')!]).toBe(0);
     expect(striker.cost[compiled.unitIndex.get('tank')!]).toBe(90);

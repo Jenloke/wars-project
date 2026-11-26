@@ -10,7 +10,7 @@ import {
   canLoadInto,
 } from './rules';
 import { NO_TILE, NO_UNIT, type GameState, type TileIndex, type Unit, type UnitId } from './types';
-import { isIndirect, unitCost } from './units';
+import { isIndirect, maxRangeOf, unitCost } from './units';
 
 /**
  * Lists what the rules allow, for menus and the AI. These functions use the same
@@ -55,7 +55,8 @@ export function attackTargetsFrom(
   const { width, height, occupant, units } = state;
   const fx = from % width;
   const fy = (from / width) | 0;
-  const { minRange, maxRange } = def;
+  const minRange = def.minRange;
+  const maxRange = maxRangeOf(ruleset, state, unit.owner, unit.type);
 
   for (let dy = -maxRange; dy <= maxRange; dy++) {
     const y = fy + dy;

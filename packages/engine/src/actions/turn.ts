@@ -7,9 +7,10 @@ import {
   supplyAdjacent,
   type Draft,
 } from '../draft';
+import { modifiersOf } from '../commanders';
 import type { CompiledRuleset } from '../ruleset';
 import { NO_OWNER, NO_TILE, type PlayerIndex, type TileIndex, type UnitId } from '../types';
-import { unitCost } from '../units';
+import { incomeOf, unitCost } from '../units';
 import type { ActionError } from './common';
 
 /** Unit IDs owned by `player`, in ascending (deterministic) order. */
@@ -23,13 +24,17 @@ function unitIdsOf(draft: Draft, player: PlayerIndex): UnitId[] {
   return ids;
 }
 
-/** Heals a unit standing on a repairing property, as far as funds allow. */
+/**
+ * Heals a unit standing on a repairing property, as far as funds allow. The
+ * owner's commander may repair more than the ruleset's `repairHp`.
+ */
 function repairUnit(ruleset: CompiledRuleset, draft: Draft, id: UnitId): void {
   const rules = ruleset.rules;
   let unit = draft.state.units[id]!;
+  const limit = rules.repairHp + modifiersOf(ruleset, draft.state, unit.owner).repair[unit.type]!;
   let healed = 0;
-  while (healed < rules.repairHp && unit.hp < rules.maxHp) {
-    const step = Math.min(rules.hpPerPip, rules.maxHp - unit.hp, rules.repairHp - healed);
+  while (healed < limit && unit.hp < rules.maxHp) {
+    const step = Math.min(rules.hpPerPip, rules.maxHp - unit.hp, limit - healed);
     const price = Math.floor(
       (unitCost(ruleset, draft.state, unit.owner, unit.type) * step) / rules.maxHp,
     );
@@ -52,6 +57,21 @@ function burnFuel(ruleset: CompiledRuleset, draft: Draft, ids: readonly UnitId[]
   }
 }
 
+/**
+ * Free healing (or wear) from the owner's commander, wherever each unit is,
+ * carried units included. Never above full HP, and never destroys a unit.
+ */
+function regenerate(ruleset: CompiledRuleset, draft: Draft, ids: readonly UnitId[]): void {
+  const maxHp = ruleset.rules.maxHp;
+  for (const id of ids) {
+    const unit = draft.state.units[id]!;
+    const regen = modifiersOf(ruleset, draft.state, unit.owner).regen[unit.type]!;
+    if (regen === 0) continue;
+    const hp = Math.max(1, Math.min(maxHp, unit.hp + regen));
+    if (hp !== unit.hp) patchUnit(draft, id, { hp });
+  }
+}
+
 /** Removes units that cannot fly or float on an empty tank. */
 function loseEmptyUnits(ruleset: CompiledRuleset, draft: Draft, ids: readonly UnitId[]): void {
   for (const id of ids) {
@@ -64,19 +84,15 @@ function loseEmptyUnits(ruleset: CompiledRuleset, draft: Draft, ids: readonly Un
 
 /**
  * Start-of-turn upkeep for `player`: income, daily fuel use, repair and resupply,
- * then the loss of anything left with an empty tank. Resupply comes before the
- * loss, so a unit that ends its turn on an airport or beside a supply unit is safe.
+ * the commander's free healing, then the loss of anything left with an empty
+ * tank. Resupply comes before the loss, so a unit that ends its turn on an
+ * airport or beside a supply unit is safe.
  */
 function startTurn(ruleset: CompiledRuleset, draft: Draft, player: PlayerIndex): void {
   const state = draft.state;
 
-  let properties = 0;
-  const owner = state.owner;
-  for (let tile = 0; tile < owner.length; tile++) {
-    if (owner[tile] === player) properties++;
-  }
   patchPlayer(draft, player, {
-    funds: state.players[player]!.funds + properties * state.incomePerProperty,
+    funds: state.players[player]!.funds + incomeOf(ruleset, state, player),
   });
 
   const ids = unitIdsOf(draft, player);
@@ -98,6 +114,7 @@ function startTurn(ruleset: CompiledRuleset, draft: Draft, player: PlayerIndex):
       supplyAdjacent(ruleset, draft, unit.pos, player, suppliedTiles);
     }
   }
+  regenerate(ruleset, draft, ids);
   loseEmptyUnits(ruleset, draft, ids);
   if (draft.state.players[player]!.alive) {
     draft.events.push({ type: 'TurnStarted', player, day: draft.state.day });
