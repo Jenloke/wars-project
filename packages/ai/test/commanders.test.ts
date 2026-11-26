@@ -1,7 +1,9 @@
-import { asciiToMap, defaultLegend, ruleset as rawRuleset } from '@tactics/content';
+import { asciiToMap, defaultLegend, maps, ruleset as rawRuleset } from '@tactics/content';
 import {
+  applyAction,
   compileRuleset,
   createGame,
+  type Action,
   type CompiledRuleset,
   type GameState,
   type RawCommanderDef,
@@ -137,5 +139,34 @@ describe('the AI and commanders', () => {
     expect(builds(longer, 'test')).toBe('artillery');
     const harder = rulesWith({ modifiers: [{ hook: 'attack', units: ['indirect'], value: 30 }] });
     expect(builds(harder, 'test')).toBe('artillery');
+  });
+
+  it('plays a full game with commanders, every side using its power', { timeout: 30_000 }, () => {
+    const ruleset = compileRuleset(rawRuleset);
+    const pairings = [
+      ['iska', 'corvin'],
+      ['odile', 'halden'],
+      ['orla', 'pip'],
+    ] as const;
+    for (const [first, second] of pairings) {
+      let state = createGame(ruleset, maps.get('twinFords'), {
+        seed: 4,
+        players: [
+          { controller: 'ai', commander: first },
+          { controller: 'ai', commander: second },
+        ],
+      });
+      const powers = [0, 0];
+      while (state.status.kind === 'playing' && state.day <= 15) {
+        const action: Action = chooseAction(ruleset, state);
+        if (action.type === 'ActivatePower') powers[state.activePlayer]!++;
+        const result = applyAction(ruleset, state, action);
+        expect(result.ok).toBe(true);
+        if (!result.ok) return;
+        state = result.state;
+      }
+      expect(powers[0], `${first} used its power`).toBeGreaterThan(0);
+      expect(powers[1], `${second} used its power`).toBeGreaterThan(0);
+    }
   });
 });
