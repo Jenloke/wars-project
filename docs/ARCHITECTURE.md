@@ -1,7 +1,6 @@
 # Architecture
 
-Status: **Phases 1 to 3 approved; Phase 4 (naval and air units) implemented, awaiting
-approval.**
+Status: **Phases 1 to 4 approved.**
 Sections below describe the code as built.
 Commit conventions are in [COMMITS.md](COMMITS.md).
 
