@@ -11,6 +11,7 @@ import {
   type Unit,
 } from '@tactics/engine';
 import { GRID, type Sprite, type SpriteLibrary } from '@tactics/sprites';
+import { armiesOf } from '../session/armies';
 import type { UiState } from '../store/uiStore';
 import { tileSize } from './camera';
 import type { Playback } from './playback';
@@ -302,6 +303,8 @@ export function createRenderer(
       cache.resize(tile);
       layerKey = '';
     }
+    // Each side is drawn in its commander's colours; a new game may change them.
+    if (cache.setTeams(armiesOf(ruleset, state).map((army) => army.ramp))) layerKey = '';
     originX = -Math.round(camera.x);
     originY = -Math.round(camera.y);
 
