@@ -7,12 +7,14 @@ import {
   replay,
   restoreSave,
   SaveError,
+  type Action,
   type GameRecord,
   type GameSetup,
   type SaveData,
   type SaveErrorCode,
 } from '../src/index';
 import { apply, makeMap, rules, SCRIPT_ROWS, scriptedActions, testRuleset } from './fixtures';
+import { navalRules } from './navalFixtures';
 
 const SAVED_AT = '2026-11-12T09:30:00.000Z';
 
@@ -76,6 +78,39 @@ describe('save and load', () => {
     const ended = { ...finished, state: apply(played.state, { type: 'Resign' }).state };
     const restored = restoreSave(rules, throughJson(createSave(rules, ended, SAVED_AT)));
     expect(restored.state.status).toEqual({ kind: 'won', winner: 0, reason: 'resign' });
+  });
+
+  it('round-trips a naval game with a dived unit and a loss to fuel', () => {
+    // A fighter with 40 fuel burns 5 a day and is lost on day 9; the sub spends
+    // those days dived and surfaces afterwards.
+    const map = makeMap(
+      ['~~~~~', '.....'],
+      [
+        { x: 1, y: 0, type: 'sub', owner: 0 },
+        { x: 0, y: 1, type: 'fighter', owner: 0 },
+        { x: 4, y: 1, type: 'infantry', owner: 1 },
+      ],
+    );
+    const setup: GameSetup = {
+      seed: 7,
+      players: [{ controller: 'local' }, { controller: 'local' }],
+    };
+    const initial = createGame(navalRules, map, setup);
+    const sub = initial.occupant[1]!;
+    const fighter = initial.occupant[5]!;
+    const actions: Action[] = [
+      { type: 'Dive', unit: sub, path: [] },
+      ...Array.from({ length: 16 }, (): Action => ({ type: 'EndTurn' })),
+      { type: 'Surface', unit: sub, path: [] },
+    ];
+    const state = replay(navalRules, initial, actions);
+    expect(state.units[fighter]).toBeUndefined();
+    expect(state.units[sub]).toMatchObject({ dived: false, fuel: 20 });
+
+    const record: GameRecord = { map, setup, actions, state };
+    const restored = restoreSave(navalRules, throughJson(createSave(navalRules, record, SAVED_AT)));
+    expect(restored.state).toEqual(state);
+    expect(hashState(restored.state)).toBe(hashState(state));
   });
 
   it('stamps the format, version, ruleset and time', () => {

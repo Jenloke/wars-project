@@ -114,4 +114,25 @@ describe('dive and surface', () => {
     expect(fullRound(state).units[sub]!.fuel).toBe(59);
     expect(fullRound(dived(state, sub)).units[sub]!.fuel).toBe(55);
   });
+
+  it('keeps the dive state of the unit a sub joins into', () => {
+    const base = game(
+      ['~~~~~', '.....'],
+      [
+        { x: 1, y: 0, type: 'sub', owner: 0 },
+        { x: 2, y: 0, type: 'sub', owner: 0, hp: 50 },
+        { x: 4, y: 1, type: 'infantry', owner: 1 },
+      ],
+    );
+    const mover = unitAt(base, 1, 0).id;
+    const target = unitAt(base, 2, 0).id;
+    const join = { type: 'Join', unit: mover, path: [2] } as const;
+
+    const intoDived = play(dived(base, target), join).state;
+    expect(intoDived.units[mover]).toBeUndefined();
+    expect(intoDived.units[target]).toMatchObject({ hp: 100, dived: true });
+
+    const fromDived = play(dived(base, mover), join).state;
+    expect(fromDived.units[target]).toMatchObject({ hp: 100, dived: false });
+  });
 });
