@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" shape-rendering="crispEdges">
+  <polygon points="0,0 48,0 48,48 0,48" fill="#c4bca8"/>
+  <polygon points="0,0 48,0 48,3 0,3" fill="#a8a08c"/>
+  <polygon points="2,6 12,6 12,8 2,8" fill="#a8a08c"/>
+  <polygon points="0,41 48,41 48,48 0,48" fill="#3b8fd0"/>
+  <polygon points="5,44 14,43 15,45 6,46" fill="#5aa9e0"/>
+  <polygon points="28,45 38,44 39,46 29,47" fill="#5aa9e0"/>
+  <polygon points="18,47 26,46 26,48 18,48" fill="#2f79b8"/>
+  <polygon points="0,38 48,38 48,41 0,41" fill="#8a8372"/>
+  <polygon points="6,20 28,20 28,37 6,37" fill="#ece7d9"/>
+  <polygon points="28,20 33,16 33,33 28,37" fill="#a59f90"/>
+  <polygon points="4,20 17,10 30,20" fill="#ff00ff"/>
+  <polygon points="30,20 17,10 21,7 35,16" fill="#990099"/>
+  <polygon points="12,28 22,28 22,37 12,37" fill="#4a5568"/>
+  <polygon points="12,31 22,31 22,32 12,32" fill="#5d6372"/>
+  <polygon points="37,12 41,12 41,38 37,38" fill="#cc00cc"/>
+  <polygon points="41,12 43,11 43,37 41,38" fill="#990099"/>
+  <polygon points="22,5 47,5 47,8 22,8" fill="#660066"/>
+  <polygon points="35,8 44,8 44,14 35,14" fill="#ff00ff"/>
+  <polygon points="38,9 42,9 42,11 38,11" fill="#4a5568"/>
+  <polygon points="25,8 26,8 26,19 25,19" fill="#1d1f26"/>
+  <polygon points="23,19 28,19 28,21 23,21" fill="#3a3f4b"/>
+  <polygon points="3,34 6,34 6,38 3,38" fill="#3a3f4b"/>
+  <polygon points="30,34 33,34 33,38 30,38" fill="#3a3f4b"/>
+</svg>
