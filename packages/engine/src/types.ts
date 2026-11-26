@@ -42,6 +42,9 @@ export interface Player {
 
 export type WinReason = 'hq' | 'rout' | 'resign';
 
+/** Why a unit left play: shot down, or out of fuel (crashed or sank). */
+export type DestroyCause = 'combat' | 'fuel';
+
 export type GameStatus =
   | { readonly kind: 'playing' }
   | { readonly kind: 'won'; readonly winner: PlayerIndex; readonly reason: WinReason };
@@ -129,6 +132,7 @@ export type GameEvent =
       readonly type: 'UnitDestroyed';
       readonly unit: UnitId;
       readonly at: TileIndex;
+      readonly cause: DestroyCause;
     }
   | {
       readonly type: 'CaptureProgress';

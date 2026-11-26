@@ -149,6 +149,13 @@ const LEGEND: Record<string, { terrain: string; owner?: number | null }> = {
   R: { terrain: 'base', owner: 0 },
   h: { terrain: 'hq', owner: 1 },
   b: { terrain: 'base', owner: 1 },
+  // Air and naval terrain, for games played with `navalRules` (navalFixtures.ts).
+  ':': { terrain: 'shoal' },
+  '*': { terrain: 'reef' },
+  A: { terrain: 'airport', owner: 0 },
+  a: { terrain: 'airport', owner: 1 },
+  P: { terrain: 'port', owner: 0 },
+  p: { terrain: 'port', owner: 1 },
 };
 
 export interface PlacedUnit {

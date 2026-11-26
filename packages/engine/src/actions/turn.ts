@@ -1,5 +1,6 @@
 import {
   defeatPlayer,
+  destroyUnit,
   patchPlayer,
   patchUnit,
   resupplyUnit,
@@ -40,7 +41,31 @@ function repairUnit(ruleset: CompiledRuleset, draft: Draft, id: UnitId): void {
   }
 }
 
-/** Start-of-turn upkeep for `player`: income, then repair and resupply. */
+/** Uses each unit's daily fuel. Units carried in a transport use none. */
+function burnFuel(ruleset: CompiledRuleset, draft: Draft, ids: readonly UnitId[]): void {
+  for (const id of ids) {
+    const unit = draft.state.units[id]!;
+    const use = ruleset.units[unit.type]!.fuelPerDay;
+    if (use === 0 || unit.pos === NO_TILE || unit.fuel === 0) continue;
+    patchUnit(draft, id, { fuel: unit.fuel > use ? unit.fuel - use : 0 });
+  }
+}
+
+/** Removes units that cannot fly or float on an empty tank. */
+function loseEmptyUnits(ruleset: CompiledRuleset, draft: Draft, ids: readonly UnitId[]): void {
+  for (const id of ids) {
+    // An earlier loss may have routed the player and removed the rest.
+    const unit = draft.state.units[id];
+    if (unit === undefined || unit.pos === NO_TILE || unit.fuel > 0) continue;
+    if (ruleset.units[unit.type]!.lostWithoutFuel) destroyUnit(ruleset, draft, id, 'fuel');
+  }
+}
+
+/**
+ * Start-of-turn upkeep for `player`: income, daily fuel use, repair and resupply,
+ * then the loss of anything left with an empty tank. Resupply comes before the
+ * loss, so a unit that ends its turn on an airport or beside a supply unit is safe.
+ */
 function startTurn(ruleset: CompiledRuleset, draft: Draft, player: PlayerIndex): void {
   const state = draft.state;
 
@@ -54,6 +79,7 @@ function startTurn(ruleset: CompiledRuleset, draft: Draft, player: PlayerIndex):
   });
 
   const ids = unitIdsOf(draft, player);
+  burnFuel(ruleset, draft, ids);
   const suppliedTiles: TileIndex[] = [];
   for (const id of ids) {
     const unit = draft.state.units[id]!;
@@ -71,7 +97,10 @@ function startTurn(ruleset: CompiledRuleset, draft: Draft, player: PlayerIndex):
       supplyAdjacent(ruleset, draft, unit.pos, player, suppliedTiles);
     }
   }
-  draft.events.push({ type: 'TurnStarted', player, day: draft.state.day });
+  loseEmptyUnits(ruleset, draft, ids);
+  if (draft.state.players[player]!.alive) {
+    draft.events.push({ type: 'TurnStarted', player, day: draft.state.day });
+  }
 }
 
 /** Hands the turn to the next living player and runs their upkeep. */

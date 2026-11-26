@@ -38,6 +38,13 @@ export interface RawUnitDef {
   readonly canCapture: boolean;
   readonly canSupply: boolean;
   readonly transport?: RawTransport | undefined;
+  /** Fuel used at the start of each of its owner's turns, on top of what moving costs. */
+  readonly fuelPerDay?: number | undefined;
+  /**
+   * Destroyed at the start of its owner's turn when its tank is empty after the
+   * daily use and any resupply: aircraft crash and ships sink.
+   */
+  readonly lostWithoutFuel?: boolean | undefined;
 }
 
 export interface RawPropertyDef {
@@ -121,6 +128,8 @@ export interface CompiledUnit {
   readonly canCapture: boolean;
   readonly canSupply: boolean;
   readonly tags: readonly string[];
+  readonly fuelPerDay: number;
+  readonly lostWithoutFuel: boolean;
   readonly capacity: number;
   /** Per unit type: 1 if this transport can carry it. */
   readonly carries: Uint8Array;
@@ -285,6 +294,8 @@ export function compileRuleset(raw: RawRuleset): CompiledRuleset {
       canCapture: u.canCapture,
       canSupply: u.canSupply,
       tags: u.tags ?? [],
+      fuelPerDay: u.fuelPerDay ?? 0,
+      lostWithoutFuel: u.lostWithoutFuel ?? false,
       capacity: u.transport?.capacity ?? 0,
       carries,
     };
