@@ -1,5 +1,5 @@
 import { DEFAULT_MAP_ID, maps } from '@tactics/content';
-import { createGame, type Action, type GameState } from '@tactics/engine';
+import { applyAction, createGame, type Action, type GameState } from '@tactics/engine';
 import { describe, expect, it } from 'vitest';
 import { chooseAction } from '../src/index';
 import { apply, makeGame, playTurn, rules } from './fixtures';
@@ -57,6 +57,31 @@ describe('full games on Twin Fords', () => {
     const first = playOut(twinFords(11), 8).actions;
     const second = playOut(twinFords(11), 8).actions;
     expect(second).toEqual(first);
+  });
+});
+
+describe('full games on Tern Reach', () => {
+  it('fights with ships and aircraft, and brings them home before they run dry', () => {
+    let state = createGame(rules, maps.get('ternReach'), {
+      seed: 5,
+      players: [{ controller: 'ai' }, { controller: 'ai' }],
+    });
+    const built = new Set<string>();
+    let lostToFuel = 0;
+    while (state.status.kind === 'playing' && state.day <= 40) {
+      const result = applyAction(rules, state, chooseAction(rules, state));
+      if (!result.ok) throw new Error(result.error);
+      for (const event of result.events) {
+        if (event.type === 'UnitBuilt') {
+          built.add(rules.units[result.state.units[event.unit]!.type]!.tags.join(' '));
+        }
+        if (event.type === 'UnitDestroyed' && event.cause === 'fuel') lostToFuel++;
+      }
+      state = result.state;
+    }
+    expect([...built].some((tags) => tags.includes('air'))).toBe(true);
+    expect([...built].some((tags) => tags.includes('naval'))).toBe(true);
+    expect(lostToFuel).toBe(0);
   });
 });
 

@@ -67,6 +67,11 @@ export interface AiProfile {
   readonly retreatPips: number;
   /** Share of fuel at or below which a unit goes back to resupply. */
   readonly lowFuel: number;
+  /**
+   * Fuel an aircraft or ship keeps beyond what the trip home and the days on the
+   * way will use, so it turns back before it can crash or sink.
+   */
+  readonly fuelReserve: number;
   /** Cost, in days of income, of ending a move on a base that could build. */
   readonly blockBaseDays: number;
   /** Worth, in days of income, of standing on an own HQ an enemy capturer can reach. */
@@ -139,6 +144,7 @@ export const DEFAULT_PROFILE: AiProfile = {
 
   retreatPips: 3,
   lowFuel: 0.2,
+  fuelReserve: 5,
   blockBaseDays: 1.5,
   guardHqDays: 8,
   minTargetDamage: 25,

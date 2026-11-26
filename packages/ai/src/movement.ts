@@ -12,6 +12,7 @@ import {
 } from '@tactics/engine';
 import { dangerAt, reachOf, standTiles, unitValue, type Board } from './board';
 import { costsTo, FAR, tilesInRange } from './distance';
+import { fuelToReturn } from './fuel';
 import { needsRepair, type Plan } from './plan';
 import type { Role } from './profile';
 
@@ -194,10 +195,13 @@ export function bestMove(
 ): TileIndex | null {
   const field = reachOf(board, unit);
   const stay = tileScore(board, unit, orders, unit.pos, context);
+  // Units heading out must keep enough fuel to come back; retreating ones are coming back.
+  const outbound = orders.role !== 'retreat';
   let best = unit.pos;
   let bestScore = stay;
   for (const tile of standTiles(board, unit, field)) {
     if (tile === unit.pos) continue;
+    if (outbound && unit.fuel - field.cost[tile]! < fuelToReturn(board, unit, tile)) continue;
     const score = tileScore(board, unit, orders, tile, context);
     if (score > bestScore) {
       best = tile;
