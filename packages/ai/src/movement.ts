@@ -159,6 +159,40 @@ export function ordersFor(board: Board, plan: Plan, unit: Unit, cache: GoalCache
 interface MoveContext {
   /** True if the AI could afford to build this turn, so bases should be left clear. */
   readonly canBuild: boolean;
+  /**
+   * Per tile: the move types (as a bit set) of worn-down friends that could repair
+   * or refuel on it. Units that cannot use such a tile themselves keep off it.
+   */
+  readonly reserved: Uint32Array;
+}
+
+/**
+ * Owned properties where a friend that needs repair (or fuel) could be serviced,
+ * marked with the move types it is needed for.
+ */
+function reservedTiles(board: Board): Uint32Array {
+  const { ruleset, state, me } = board;
+  const reserved = new Uint32Array(state.width * state.height);
+  let needs = 0;
+  for (const unit of board.mine) {
+    if (needsRepair(board, unit)) needs |= 1 << ruleset.units[unit.type]!.moveType;
+  }
+  if (needs === 0) return reserved;
+  for (let tile = 0; tile < reserved.length; tile++) {
+    if (state.owner[tile] !== me) continue;
+    const repairs = ruleset.terrain[state.terrain[tile]!]!.repairs;
+    for (let moveType = 0; moveType < repairs.length; moveType++) {
+      if ((needs & (1 << moveType)) !== 0 && repairs[moveType] === 1)
+        reserved[tile]! |= 1 << moveType;
+    }
+  }
+  return reserved;
+}
+
+/** True if `unit` should keep off `tile`, which a friend needs and it cannot use. */
+function keepsOff(board: Board, unit: Unit, tile: TileIndex, context: MoveContext): boolean {
+  const own = 1 << board.ruleset.units[unit.type]!.moveType;
+  return context.reserved[tile] !== 0 && (context.reserved[tile]! & own) === 0;
 }
 
 /**
@@ -248,6 +282,7 @@ export function bestMove(
   for (const tile of standTiles(board, unit, field)) {
     if (tile === unit.pos) continue;
     if (outbound && unit.fuel - field.cost[tile]! < fuelToReturn(board, unit, tile)) continue;
+    if (keepsOff(board, unit, tile, context)) continue;
     const score = tileScore(board, unit, orders, tile, context);
     if (score > bestScore) {
       best = tile;
@@ -275,7 +310,7 @@ export function findMove(
       cheapest = Math.min(cheapest, unitCost(ruleset, state, board.me, unitType));
     }
   }
-  const context: MoveContext = { canBuild: funds >= cheapest };
+  const context: MoveContext = { canBuild: funds >= cheapest, reserved: reservedTiles(board) };
 
   const movers: { unit: Unit; orders: Orders }[] = [];
   for (const unit of board.mine) {
@@ -283,8 +318,16 @@ export function findMove(
     const orders = ordersFor(board, plan, unit, cache);
     if (orders !== null) movers.push({ unit, orders });
   }
+  // Units parked on a property a worn-down friend needs to repair or refuel at
+  // (a unit built there last turn, say) move first, so they do not shut it out.
+  // The friend may not even have a way home yet: occupied properties are not goals.
+  const blocking = (mover: { unit: Unit; orders: Orders }) =>
+    mover.orders.role !== 'retreat' && context.reserved[mover.unit.pos] !== 0 ? 0 : 1;
   movers.sort(
-    (a, b) => a.orders.goal[a.unit.pos]! - b.orders.goal[b.unit.pos]! || a.unit.id - b.unit.id,
+    (a, b) =>
+      blocking(a) - blocking(b) ||
+      a.orders.goal[a.unit.pos]! - b.orders.goal[b.unit.pos]! ||
+      a.unit.id - b.unit.id,
   );
 
   for (const { unit, orders } of movers) {

@@ -1,7 +1,7 @@
 import type { GameState, Unit } from '@tactics/engine';
 import { describe, expect, it } from 'vitest';
 import { chooseAction } from '../src/chooseAction';
-import { destination, makeGame, rules, unitAt } from './fixtures';
+import { apply, destination, makeGame, rules, unitAt } from './fixtures';
 
 function withUnit(state: GameState, unit: Unit, patch: Partial<Unit>): GameState {
   return { ...state, units: { ...state.units, [unit.id]: { ...unit, ...patch } } };
@@ -74,6 +74,22 @@ describe('fuel', () => {
     const action = chooseAction(rules, state);
     expect(action.type).toBe('Move');
     expect(destination(state, action) % state.width).toBeGreaterThan(14);
+  });
+
+  it('moves a unit off the airport a damaged aircraft needs to land on', () => {
+    const base = makeGame(
+      ['~A~~~~~~~~~~~~~~~~~.'],
+      [
+        { x: 1, y: 0, type: 'battleCopter', owner: 0 },
+        { x: 3, y: 0, type: 'battleCopter', owner: 0, hp: 20 },
+        { x: 19, y: 0, type: 'infantry', owner: 1 },
+      ],
+    );
+    const parked = unitAt(base, 1, 0);
+    const action = chooseAction(rules, base);
+    expect(action).toMatchObject({ type: 'Move', unit: parked.id });
+    const next = chooseAction(rules, apply(base, action));
+    expect(destination(apply(base, action), next)).toBe(1);
   });
 
   it('never flies further out than it could come back from', () => {
