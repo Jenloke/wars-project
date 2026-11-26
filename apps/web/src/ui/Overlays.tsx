@@ -1,10 +1,11 @@
-import { factions } from '@tactics/content';
-import type { WinReason } from '@tactics/engine';
+import type { PlayerIndex, WinReason } from '@tactics/engine';
 import { useEffect, useState } from 'react';
 import { openGameDialog, openNewGameDialog } from '../input/interaction';
+import { armiesOf } from '../session/armies';
 import { ruleset, session } from '../session/game';
 import { unitsLostToFuel } from './fuelLosses';
 import { useGameState } from './hooks';
+import { Portrait } from './Portrait';
 
 const REASONS: Readonly<Record<WinReason, string>> = {
   hq: 'The enemy headquarters was captured.',
@@ -34,15 +35,15 @@ export function TurnBanner() {
     };
   }, []);
   if (state.status.kind !== 'playing') return null;
-  const faction = factions[state.activePlayer];
+  const army = armiesOf(ruleset, state)[state.activePlayer]!;
   return (
     <div
       key={`${state.day}-${state.activePlayer}`}
       className="turn-banner"
-      style={{ borderColor: faction?.color }}
+      style={{ borderColor: army.color }}
       role="status"
     >
-      Day {state.day} · {faction?.name ?? `Player ${state.activePlayer + 1}`}
+      Day {state.day} · {army.name}
       {state.players[state.activePlayer]!.controller === 'ai' && (
         <span className="muted"> · Computer</span>
       )}
@@ -51,18 +52,69 @@ export function TurnBanner() {
   );
 }
 
+interface Activation {
+  readonly player: PlayerIndex;
+  /** Distinguishes two activations in a row, so the banner replays. */
+  readonly serial: number;
+}
+
+/** Announces a commander's power, with their portrait, as it is activated. */
+export function PowerBanner() {
+  const state = useGameState();
+  const [shown, setShown] = useState<Activation | null>(null);
+  useEffect(() => {
+    let serial = 0;
+    const stopEvents = session.onEvents((_previous, _next, events) => {
+      for (const event of events) {
+        if (event.type === 'PowerActivated') setShown({ player: event.player, serial: ++serial });
+      }
+    });
+    const stopReset = session.onReset(() => setShown(null));
+    return () => {
+      stopEvents();
+      stopReset();
+    };
+  }, []);
+  if (shown === null) return null;
+  const army = armiesOf(ruleset, state)[shown.player];
+  const power = ruleset.commanders[state.players[shown.player]?.commander ?? 0]?.power;
+  if (army === undefined || power === null || power === undefined) return null;
+  return (
+    <div
+      key={shown.serial}
+      className="power-banner"
+      style={{ borderColor: army.color }}
+      role="status"
+      onAnimationEnd={() => setShown(null)}
+    >
+      <Portrait sprite={army.portrait} ramp={army.ramp} size={72} />
+      <div>
+        <div className="power-banner-name" style={{ color: army.color }}>
+          {power.name}
+        </div>
+        <div className="muted">
+          {army.commanderName} · {army.name}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function GameOver() {
   const state = useGameState();
   if (state.status.kind !== 'won') return null;
-  const faction = factions[state.status.winner];
+  const army = armiesOf(ruleset, state)[state.status.winner]!;
   return (
     <div className="game-over" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
       <div className="game-over-card">
-        <h1 id="game-over-title" style={{ color: faction?.color }}>
-          {faction?.name ?? `Player ${state.status.winner + 1}`} wins
+        <Portrait sprite={army.portrait} ramp={army.ramp} size={96} label={army.commanderName} />
+        <h1 id="game-over-title" style={{ color: army.color }}>
+          {army.name} wins
         </h1>
         <p>{REASONS[state.status.reason]}</p>
-        <p className="muted">Day {state.day}</p>
+        <p className="muted">
+          {army.commanderName} · Day {state.day}
+        </p>
         <div className="game-over-actions">
           <button type="button" onClick={openGameDialog}>
             Load a save

@@ -1,9 +1,12 @@
-import { factions } from '@tactics/content';
-import { endTurn, openGameDialog, zoomBy } from '../input/interaction';
+import { canActivatePower } from '@tactics/engine';
+import { activatePower, endTurn, openGameDialog, zoomBy } from '../input/interaction';
 import { MAX_ZOOM, MIN_ZOOM } from '../render/camera';
-import { session } from '../session/game';
+import { armiesOf } from '../session/armies';
+import { ruleset, session } from '../session/game';
 import { useUiStore } from '../store/uiStore';
 import { useGameState } from './hooks';
+import { Portrait } from './Portrait';
+import { PowerGauge } from './PowerGauge';
 
 const HINTS: Readonly<Record<string, string>> = {
   idle: 'Select a unit or a base',
@@ -15,34 +18,47 @@ const HINTS: Readonly<Record<string, string>> = {
   mapMenu: '',
 };
 
-/** Day, active player, funds and the always-available controls. */
+/** Day, the side to move with its commander and power meter, funds, and the controls. */
 export function TopBar() {
   const state = useGameState();
   const mode = useUiStore((ui) => ui.mode);
   const zoom = useUiStore((ui) => ui.camera.zoom);
   const animating = useUiStore((ui) => ui.animating);
   const player = state.players[state.activePlayer]!;
-  const faction = factions[state.activePlayer];
+  const army = armiesOf(ruleset, state)[state.activePlayer]!;
+  const power = ruleset.commanders[player.commander]!.power;
   const playing = state.status.kind === 'playing';
   const localTurn = session.isLocalTurn();
-  const hint = !playing
-    ? ''
-    : localTurn
-      ? HINTS[mode]
-      : `${faction?.name ?? 'The computer'} is moving…`;
+  const canOrder = playing && localTurn && !animating;
+  const hint = !playing ? '' : localTurn ? HINTS[mode] : `${army.name} is moving…`;
 
   return (
     <header className="top-bar">
       <div className="turn-info">
         <span className="day">Day {state.day}</span>
-        <span className="faction">
-          <span className="faction-dot" style={{ background: faction?.color }} />
-          {faction?.name ?? `Player ${state.activePlayer + 1}`}
+        <span className="faction" title={`${army.commanderName}, ${army.name}`}>
+          <Portrait sprite={army.portrait} ramp={army.ramp} size={30} />
+          <span className="army-name" style={{ color: army.color }}>
+            {army.name}
+          </span>
           {player.controller === 'ai' && <span className="badge">Computer</span>}
         </span>
         <span className="funds" title="Funds">
           {player.funds.toLocaleString()} G
         </span>
+        <PowerGauge state={state} player={state.activePlayer} />
+        {power !== null && canActivatePower(ruleset, state) && localTurn && (
+          <button
+            type="button"
+            className="power-button"
+            style={{ borderColor: army.color }}
+            onClick={activatePower}
+            disabled={!canOrder || (mode !== 'idle' && mode !== 'mapMenu')}
+            title={`Activate ${power.name} (P)`}
+          >
+            {power.name}
+          </button>
+        )}
       </div>
       <p className="hint" aria-live="polite">
         {hint}
@@ -71,7 +87,7 @@ export function TopBar() {
           type="button"
           className="primary"
           onClick={endTurn}
-          disabled={!playing || !localTurn || animating || mode !== 'idle'}
+          disabled={!canOrder || mode !== 'idle'}
         >
           End turn
         </button>

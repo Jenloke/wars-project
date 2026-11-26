@@ -1,5 +1,6 @@
-import { getBuildOptions } from '@tactics/engine';
+import { canActivatePower, getBuildOptions } from '@tactics/engine';
 import {
+  activatePower,
   chooseBuild,
   chooseCommand,
   chooseUnload,
@@ -68,7 +69,13 @@ function BuildMenu() {
 }
 
 function MapMenu() {
-  const items: MenuItem[] = [
+  const state = useGameState();
+  const power = ruleset.commanders[state.players[state.activePlayer]!.commander]!.power;
+  const items: MenuItem[] = [];
+  if (power !== null && canActivatePower(ruleset, state)) {
+    items.push({ key: 'power', label: `Power: ${power.name}`, onSelect: activatePower });
+  }
+  items.push(
     { key: 'end', label: 'End turn', onSelect: endTurn },
     { key: 'saves', label: 'Save / Load', onSelect: openGameDialog },
     {
@@ -78,7 +85,7 @@ function MapMenu() {
         if (window.confirm('Resign and concede the game?')) resign();
       },
     },
-  ];
+  );
   return <Menu title="Command" items={items} />;
 }
 
