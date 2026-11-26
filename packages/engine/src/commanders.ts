@@ -10,11 +10,13 @@ export function commanderOf(
   return ruleset.commanders[state.players[player]!.commander]!;
 }
 
-/** The modifiers in effect for `player` right now. */
+/** The modifiers in effect for `player` right now: innate, plus the power while it is active. */
 export function modifiersOf(
   ruleset: CompiledRuleset,
   state: GameState,
   player: PlayerIndex,
 ): CompiledModifiers {
-  return commanderOf(ruleset, state, player).passive;
+  const side = state.players[player]!;
+  const commander = ruleset.commanders[side.commander]!;
+  return side.powerActive ? commander.powered : commander.passive;
 }

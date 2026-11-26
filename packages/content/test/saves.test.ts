@@ -70,16 +70,20 @@ describe('readSave', () => {
     expect(restored.state.capture[tileAt(2, 3)]).toBe(10);
   });
 
-  it('loads a format 1 save written before units could dive', () => {
+  it('loads a format 1 save written before units could dive or powers existed', () => {
     // Written by the phase 3 build: the computer playing eight days of Twin Fords.
     expect(saveV1.version).toBe(1);
     const restored = readSave(JSON.stringify(saveV1), compiled);
     expect(restored.actions).toHaveLength(saveV1.actions.length);
-    expect(restored.state.schemaVersion).toBe(2);
+    expect(restored.state.schemaVersion).toBe(3);
     expect(restored.state.day).toBe(saveV1.state.day);
     const units = Object.values(restored.state.units);
     expect(units).toHaveLength(Object.keys(saveV1.state.units).length);
     for (const unit of units) expect(unit.dived).toBe(false);
+    // Meters charged under the phase 3 rule replay to the same values.
+    expect(restored.state.players).toEqual(
+      saveV1.state.players.map((player) => ({ ...player, powerActive: false })),
+    );
   });
 
   it('rejects text that is not a save', () => {
@@ -147,6 +151,7 @@ describe('actionSchema', () => {
       { type: 'Dive', unit: 1, path: [5] },
       { type: 'Surface', unit: 1, path: [] },
       { type: 'Build', at: 0, unitType: 3 },
+      { type: 'ActivatePower' },
       { type: 'EndTurn' },
       { type: 'Resign' },
     ];
@@ -161,6 +166,7 @@ describe('actionSchema', () => {
       { type: 'Unload', unit: 1, path: [], drops: [] },
       { type: 'Dive', unit: 1 },
       { type: 'Surface', path: [] },
+      { type: 'ActivatePowers' },
       { type: 'Move', unit: 1, path: Array.from({ length: 65 }, (_unused, i) => i) },
     ]) {
       expect(actionSchema.safeParse(action).success).toBe(false);

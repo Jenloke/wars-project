@@ -51,6 +51,7 @@ const actionSchemas = {
   Dive: z.object({ type: z.literal('Dive'), unit: unitId, path }),
   Surface: z.object({ type: z.literal('Surface'), unit: unitId, path }),
   Build: z.object({ type: z.literal('Build'), at: tile, unitType: z.number().int().nonnegative() }),
+  ActivatePower: z.object({ type: z.literal('ActivatePower') }),
   EndTurn: z.object({ type: z.literal('EndTurn') }),
   Resign: z.object({ type: z.literal('Resign') }),
 } satisfies { readonly [K in ActionType]: z.ZodType<Extract<Action, { type: K }>> };
@@ -66,6 +67,7 @@ export const actionSchema = z.discriminatedUnion('type', [
   actionSchemas.Dive,
   actionSchemas.Surface,
   actionSchemas.Build,
+  actionSchemas.ActivatePower,
   actionSchemas.EndTurn,
   actionSchemas.Resign,
 ]);

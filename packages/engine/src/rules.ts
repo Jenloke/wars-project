@@ -1,5 +1,5 @@
 import { IMPASSABLE, type CompiledRuleset } from './ruleset';
-import { NO_UNIT, type GameState, type TileIndex, type Unit } from './types';
+import { NO_UNIT, type GameState, type PlayerIndex, type TileIndex, type Unit } from './types';
 import { hpPips, maxPips } from './units';
 
 /**
@@ -70,4 +70,30 @@ export function canDropAt(
 ): boolean {
   if (!canEnterTerrain(ruleset, state, cargo.type, tile)) return false;
   return tile === vacated || state.occupant[tile] === NO_UNIT;
+}
+
+/**
+ * Why `player` cannot activate their commander's power now, or null if they can.
+ * Only the active player can act, so the reducer asks this for them.
+ */
+export function powerBlocker(
+  ruleset: CompiledRuleset,
+  state: GameState,
+  player: PlayerIndex = state.activePlayer,
+): string | null {
+  const side = state.players[player]!;
+  const power = ruleset.commanders[side.commander]!.power;
+  if (power === null) return 'Your commander has no power';
+  if (side.powerActive) return 'The power is already active';
+  if (side.power < power.cost) return 'The power meter is not full';
+  return null;
+}
+
+/** True if `player` (by default the active one) can activate their power now. */
+export function canActivatePower(
+  ruleset: CompiledRuleset,
+  state: GameState,
+  player: PlayerIndex = state.activePlayer,
+): boolean {
+  return powerBlocker(ruleset, state, player) === null;
 }

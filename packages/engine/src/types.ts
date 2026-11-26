@@ -9,8 +9,8 @@ export const NO_UNIT = -1;
 export const NO_OWNER = -1;
 export const NO_TILE = -1;
 
-/** Version of the `GameState` shape. 2 added `Unit.dived`. */
-export const SCHEMA_VERSION = 2;
+/** Version of the `GameState` shape. 2 added `Unit.dived`, 3 `Player.powerActive`. */
+export const SCHEMA_VERSION = 3;
 
 export type ControllerKind = 'local' | 'ai' | 'remote';
 
@@ -38,9 +38,12 @@ export interface Player {
   readonly funds: number;
   /** Index into `CompiledRuleset.commanders`. 0 is the no-op commander. */
   readonly commander: number;
+  /** Power meter, in meter points. */
   readonly power: number;
   readonly controller: ControllerKind;
   readonly alive: boolean;
+  /** True from activating the commander's power until the start of the player's next turn. */
+  readonly powerActive: boolean;
 }
 
 export type WinReason = 'hq' | 'rout' | 'resign';
@@ -111,6 +114,7 @@ export type Action =
   | { readonly type: 'Dive'; readonly unit: UnitId; readonly path: readonly TileIndex[] }
   | { readonly type: 'Surface'; readonly unit: UnitId; readonly path: readonly TileIndex[] }
   | { readonly type: 'Build'; readonly at: TileIndex; readonly unitType: number }
+  | { readonly type: 'ActivatePower' }
   | { readonly type: 'EndTurn' }
   | { readonly type: 'Resign' };
 
@@ -158,6 +162,7 @@ export type GameEvent =
       readonly from: UnitId;
       readonly to: TileIndex;
     }
+  | { readonly type: 'PowerActivated'; readonly player: PlayerIndex }
   | { readonly type: 'TurnStarted'; readonly player: PlayerIndex; readonly day: number }
   | { readonly type: 'PlayerDefeated'; readonly player: PlayerIndex; readonly reason: WinReason }
   | { readonly type: 'GameWon'; readonly winner: PlayerIndex; readonly reason: WinReason };

@@ -91,6 +91,31 @@ describe('save migrations', () => {
     );
   });
 
+  it('gives every player of a format 2 save a power flag, last in key order', () => {
+    const player = { funds: 0, commander: 0, power: 120, controller: 'local', alive: true };
+    const state = { schemaVersion: 2, mapId: 'test', players: [player, { ...player, power: 0 }] };
+    const migrated = migrateSave(
+      { format: SAVE_FORMAT, version: 2, state, actions: [] },
+      SAVE_MIGRATIONS,
+      3,
+    );
+    expect(JSON.stringify(migrated)).toBe(
+      JSON.stringify({
+        format: SAVE_FORMAT,
+        version: 3,
+        state: {
+          schemaVersion: 3,
+          mapId: 'test',
+          players: [
+            { ...player, powerActive: false },
+            { ...player, power: 0, powerActive: false },
+          ],
+        },
+        actions: [],
+      }),
+    );
+  });
+
   it('has an upgrade step for every version below the current one', () => {
     const current = { format: SAVE_FORMAT, version: SAVE_VERSION };
     expect(migrateSave(current)).toBe(current);

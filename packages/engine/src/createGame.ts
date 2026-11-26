@@ -91,6 +91,7 @@ export function createGame(ruleset: CompiledRuleset, map: MapData, setup: GameSe
       power: 0,
       controller: setup.players[i]!.controller,
       alive: true,
+      powerActive: false,
     };
   });
 

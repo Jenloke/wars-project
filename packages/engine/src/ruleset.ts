@@ -112,11 +112,39 @@ export interface RawModifier {
   readonly value: number;
 }
 
+/** Something a power does once, the moment it is activated, to its player's side. */
+export type RawPowerEffect =
+  /** Every unit it names regains `hp` internal HP, for free, up to full. */
+  | {
+      readonly kind: 'heal';
+      readonly hp: number;
+      readonly units?: readonly UnitSelector[] | undefined;
+    }
+  /** Every unit it names is refilled with fuel and ammo. */
+  | { readonly kind: 'resupply'; readonly units?: readonly UnitSelector[] | undefined }
+  /** Pays `incomePercent` percent of a day's income at once. */
+  | { readonly kind: 'funds'; readonly incomePercent: number };
+
+/**
+ * A commander's power. Activated by its player once the meter holds `cost`
+ * points; its modifiers then apply on top of the innate ones until the start of
+ * that player's next turn, so defensive powers hold through the enemy's turn.
+ */
+export interface RawPower {
+  readonly name: string;
+  /** Meter points spent to activate it. */
+  readonly cost: number;
+  readonly modifiers: readonly RawModifier[];
+  readonly effects?: readonly RawPowerEffect[] | undefined;
+}
+
 export interface RawCommanderDef {
   readonly id: string;
   readonly name: string;
   /** Innate modifiers, always in effect. */
   readonly modifiers: readonly RawModifier[];
+  /** Commanders without a power have nothing to activate. */
+  readonly power?: RawPower | undefined;
 }
 
 export interface RuleConstants {
@@ -201,11 +229,29 @@ export interface CompiledModifiers {
   readonly income: number;
 }
 
+export type CompiledPowerEffect =
+  | {
+      readonly kind: 'heal';
+      readonly hp: number;
+      /** Per unit type: 1 if healed. */ readonly units: Uint8Array;
+    }
+  | { readonly kind: 'resupply'; /** Per unit type: 1 if resupplied. */ readonly units: Uint8Array }
+  | { readonly kind: 'funds'; readonly incomePercent: number };
+
+export interface CompiledPower {
+  readonly name: string;
+  readonly cost: number;
+  readonly effects: readonly CompiledPowerEffect[];
+}
+
 export interface CompiledCommander {
   readonly id: string;
   readonly name: string;
   /** Innate modifiers. */
   readonly passive: CompiledModifiers;
+  /** Innate and power modifiers together, while the power is active. */
+  readonly powered: CompiledModifiers;
+  readonly power: CompiledPower | null;
 }
 
 export interface CompiledRuleset {
@@ -338,10 +384,44 @@ function applyModifiers(
   return result;
 }
 
+function selectedOrAll(
+  units: readonly RawUnitDef[],
+  selectors: readonly UnitSelector[] | undefined,
+  context: string,
+): Uint8Array {
+  return selectors === undefined
+    ? new Uint8Array(units.length).fill(1)
+    : selectUnits(units, selectors, context);
+}
+
+function compilePower(raw: RawPower, units: readonly RawUnitDef[], context: string): CompiledPower {
+  if (!(raw.cost > 0)) throw new Error(`${context}: power cost must be positive`);
+  const effects = (raw.effects ?? []).map((effect): CompiledPowerEffect => {
+    switch (effect.kind) {
+      case 'heal':
+        return { kind: 'heal', hp: effect.hp, units: selectedOrAll(units, effect.units, context) };
+      case 'resupply':
+        return { kind: 'resupply', units: selectedOrAll(units, effect.units, context) };
+      case 'funds':
+        return { kind: 'funds', incomePercent: effect.incomePercent };
+      default: {
+        const unknown: never = effect;
+        throw new Error(`${context}: unknown power effect ${JSON.stringify(unknown)}`);
+      }
+    }
+  });
+  return { name: raw.name, cost: raw.cost, effects };
+}
+
 function compileCommander(raw: RawCommanderDef, units: readonly RawUnitDef[]): CompiledCommander {
   const context = `Commander "${raw.id}"`;
   const passive = applyModifiers(units, neutralModifiers(units.length), raw.modifiers, context);
-  return { id: raw.id, name: raw.name, passive };
+  if (raw.power === undefined) {
+    return { id: raw.id, name: raw.name, passive, powered: passive, power: null };
+  }
+  const powered = applyModifiers(units, passive, raw.power.modifiers, `${context} power`);
+  const power = compilePower(raw.power, units, `${context} power`);
+  return { id: raw.id, name: raw.name, passive, powered, power };
 }
 
 /** Interns a raw ruleset into lookup tables. Throws on any dangling reference. */
