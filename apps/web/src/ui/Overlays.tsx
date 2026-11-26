@@ -1,8 +1,9 @@
 import { factions } from '@tactics/content';
-import type { GameEvent, GameState, WinReason } from '@tactics/engine';
+import type { WinReason } from '@tactics/engine';
 import { useEffect, useState } from 'react';
 import { openGameDialog, openNewGameDialog } from '../input/interaction';
 import { ruleset, session } from '../session/game';
+import { unitsLostToFuel } from './fuelLosses';
 import { useGameState } from './hooks';
 
 const REASONS: Readonly<Record<WinReason, string>> = {
@@ -10,17 +11,6 @@ const REASONS: Readonly<Record<WinReason, string>> = {
   rout: 'The enemy army was destroyed.',
   resign: 'The enemy conceded.',
 };
-
-/** Names of the units an action's events say ran out of fuel and were lost. */
-function lostToFuel(previous: GameState, events: readonly GameEvent[]): string[] {
-  const names: string[] = [];
-  for (const event of events) {
-    if (event.type !== 'UnitDestroyed' || event.cause !== 'fuel') continue;
-    const unit = previous.units[event.unit];
-    if (unit !== undefined) names.push(ruleset.units[unit.type]!.name);
-  }
-  return names;
-}
 
 /**
  * Announces whose turn it is, and any of their units that crashed or sank for
@@ -34,7 +24,7 @@ export function TurnBanner() {
     // mounts for the new turn already has its losses.
     const stopEvents = session.onEvents((previous, _next, events) => {
       if (events.some((event) => event.type === 'TurnStarted')) {
-        setLost(lostToFuel(previous, events));
+        setLost(unitsLostToFuel(ruleset, previous, events));
       }
     });
     const stopReset = session.onReset(() => setLost([]));
