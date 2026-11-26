@@ -27,6 +27,12 @@ function ActionMenu() {
   if (options.canSupply) {
     items.push({ key: 'supply', label: 'Supply', onSelect: () => chooseCommand('supply') });
   }
+  if (options.canDive) {
+    items.push({ key: 'dive', label: 'Dive', onSelect: () => chooseCommand('dive') });
+  }
+  if (options.canSurface) {
+    items.push({ key: 'surface', label: 'Surface', onSelect: () => chooseCommand('surface') });
+  }
   if (options.canJoin) {
     items.push({ key: 'join', label: 'Join', onSelect: () => chooseCommand('join') });
   }
