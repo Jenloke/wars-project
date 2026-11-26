@@ -12,7 +12,7 @@ import {
 } from '@tactics/engine';
 import { dangerAt, reachOf, standTiles, unitValue, type Board } from './board';
 import { costsTo, FAR, tilesInRange } from './distance';
-import { fuelToReturn } from './fuel';
+import { fuelToReturn, runningDry } from './fuel';
 import { needsRepair, type Plan } from './plan';
 import type { Role } from './profile';
 
@@ -161,6 +161,48 @@ interface MoveContext {
   readonly canBuild: boolean;
 }
 
+/**
+ * Whether a unit that can dive should be under once it stands on `tile`, having
+ * spent `cost` fuel getting there; null for units that cannot dive. Diving keeps
+ * it out of reach of most attackers but burns fuel fast, so it stays up when
+ * nothing that could hit it surfaced is near, or when the dived burn would leave
+ * it unable to get home.
+ */
+function diveAt(board: Board, unit: Unit, tile: TileIndex, cost: number): boolean | null {
+  if (!board.ruleset.units[unit.type]!.canDive) return null;
+  const under: Unit = { ...unit, dived: true, fuel: unit.fuel - cost };
+  if (runningDry(board, under, tile)) return false;
+  const exposed = dangerAt(board, { ...unit, dived: false }, tile, unit.hp);
+  return exposed > dangerAt(board, under, tile, unit.hp);
+}
+
+/** The unit as it would stand on `tile`: dived or not, as `diveAt` decides. */
+function asItWouldStand(board: Board, unit: Unit, tile: TileIndex): Unit {
+  const dive = diveAt(board, unit, tile, 0);
+  return dive === null || dive === unit.dived ? unit : { ...unit, dived: dive };
+}
+
+/** The order that takes `unit` along `path` to `tile`: a move, or a dive or surface there. */
+function orderAlong(
+  board: Board,
+  unit: Unit,
+  path: TileIndex[],
+  tile: TileIndex,
+  cost: number,
+): Action {
+  const dive = diveAt(board, unit, tile, cost);
+  if (dive === true && !unit.dived) return { type: 'Dive', unit: unit.id, path };
+  if (dive === false && unit.dived) return { type: 'Surface', unit: unit.id, path };
+  return { type: 'Move', unit: unit.id, path };
+}
+
+/** A dive or surface without moving, if the unit should change where it stands. */
+function diveInPlace(board: Board, unit: Unit): Action | null {
+  const dive = diveAt(board, unit, unit.pos, 0);
+  if (dive === null || dive === unit.dived) return null;
+  return { type: dive ? 'Dive' : 'Surface', unit: unit.id, path: [] };
+}
+
 function tileScore(
   board: Board,
   unit: Unit,
@@ -175,7 +217,8 @@ function tileScore(
 
   let score =
     -(orders.goal[tile]! / Math.max(1, def.movePoints)) * profile.progress[orders.role] * worth;
-  score -= profile.danger[orders.role] * board.caution * dangerAt(board, unit, tile, unit.hp);
+  const standing = asItWouldStand(board, unit, tile);
+  score -= profile.danger[orders.role] * board.caution * dangerAt(board, standing, tile, unit.hp);
   score += profile.terrainStar * terrain.defence * worth;
   if (state.owner[tile] === board.me) {
     if (context.canBuild && terrain.builds.length > 0)
@@ -243,13 +286,20 @@ export function findMove(
 
   for (const { unit, orders } of movers) {
     const tile = bestMove(board, unit, orders, context);
-    if (tile === null) continue;
-    const action: Action = {
-      type: 'Move',
-      unit: unit.id,
-      path: pathTo(reachOf(board, unit), tile, []),
-    };
-    if (isLegal(action)) return action;
+    let action: Action | null;
+    if (tile === null) {
+      action = diveInPlace(board, unit);
+    } else {
+      const field = reachOf(board, unit);
+      action = orderAlong(board, unit, pathTo(field, tile, []), tile, field.cost[tile]!);
+    }
+    if (action !== null && isLegal(action)) return action;
+  }
+  // Units with nowhere to go may still need to dive or surface where they are.
+  for (const unit of board.mine) {
+    if (unit.moved || movers.some((mover) => mover.unit === unit)) continue;
+    const action = diveInPlace(board, unit);
+    if (action !== null && isLegal(action)) return action;
   }
   return null;
 }

@@ -10,6 +10,48 @@ function withUnit(state: GameState, unit: Unit, patch: Partial<Unit>): GameState
 /** An airport on the left of open sea, with an enemy far off on the right. */
 const LONG_SEA = ['A' + '~'.repeat(28) + '.'];
 
+describe('diving', () => {
+  it('dives a submarine that an enemy could otherwise hit', () => {
+    const state = makeGame(
+      ['~~~~~~~~~~'],
+      [
+        { x: 0, y: 0, type: 'submarine', owner: 0 },
+        { x: 6, y: 0, type: 'bomber', owner: 1 },
+      ],
+    );
+    const sub = unitAt(state, 0, 0);
+    const action = chooseAction(rules, state);
+    expect(action).toMatchObject({ type: 'Dive', unit: sub.id });
+  });
+
+  it('surfaces when nothing that could hit it is near, to save fuel', () => {
+    const base = makeGame(
+      ['~~~~~~~...'],
+      [
+        { x: 0, y: 0, type: 'submarine', owner: 0 },
+        { x: 9, y: 0, type: 'infantry', owner: 1 },
+      ],
+    );
+    const state = withUnit(base, unitAt(base, 0, 0), { dived: true });
+    expect(chooseAction(rules, state)).toMatchObject({ type: 'Surface' });
+  });
+
+  it('surfaces to head home when staying under would strand it', () => {
+    const base = makeGame(
+      ['P~~~~~~~~~'],
+      [
+        { x: 6, y: 0, type: 'submarine', owner: 0 },
+        { x: 9, y: 0, type: 'bomber', owner: 1 },
+      ],
+    );
+    const sub = unitAt(base, 6, 0);
+    const state = withUnit(base, sub, { dived: true, fuel: 20 });
+    const action = chooseAction(rules, state);
+    expect(action.type).toBe('Surface');
+    expect(destination(state, action) % state.width).toBeLessThan(6);
+  });
+});
+
 describe('fuel', () => {
   const sortie = (x: number, fuel: number) => {
     const state = makeGame(LONG_SEA, [
