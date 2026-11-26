@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" shape-rendering="crispEdges">
+  <polygon points="3,33 44,33 41,41 6,41" fill="#cc00cc"/>
+  <polygon points="3,33 44,33 44,35 3,35" fill="#ff00ff"/>
+  <polygon points="6,39 41,39 41,41 6,41" fill="#990099"/>
+  <polygon points="17,29 37,29 37,33 17,33" fill="#5d6372"/>
+  <polygon points="17,29 37,29 37,30 17,30" fill="#8a90a0"/>
+  <polygon points="37,22 44,24 44,33 37,33" fill="#5d6372"/>
+  <polygon points="37,22 44,24 44,26 37,24" fill="#8a90a0"/>
+  <polygon points="6,20 16,20 16,33 6,33" fill="#ece7d9"/>
+  <polygon points="16,20 18,19 18,32 16,33" fill="#a59f90"/>
+  <polygon points="8,23 14,23 14,26 8,26" fill="#4a5568"/>
+  <polygon points="5,18 18,18 18,20 5,20" fill="#660066"/>
+  <polygon points="10,11 11,11 11,18 10,18" fill="#3a3f4b"/>
+  <polygon points="8,13 13,13 13,14 8,14" fill="#3a3f4b"/>
+  <polygon points="42,40 47,38 47,40 43,41" fill="#ffffff"/>
+</svg>
