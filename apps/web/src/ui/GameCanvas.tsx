@@ -1,10 +1,10 @@
 import { NO_TILE, type GameEvent, type TileIndex } from '@tactics/engine';
-import { loadAtlas } from '@tactics/sprites';
+import { sprites } from '@tactics/sprites';
 import { useEffect, useRef, useState } from 'react';
 import { cancel, clickTile, moveCursor, panBy, zoomBy } from '../input/interaction';
 import { clampCamera, panToTile, tileAtPoint } from '../render/camera';
 import { playback } from '../render/playback';
-import { createRenderer, idleFrameAt } from '../render/renderer';
+import { createRenderer, idleFrameAt, type Renderer } from '../render/renderer';
 import { ruleset, session } from '../session/game';
 import { IDLE_SELECTION, useUiStore } from '../store/uiStore';
 
@@ -43,7 +43,6 @@ export function GameCanvas() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas === null) return;
-    let disposed = false;
     let frameHandle = 0;
     let dirty = true;
     const markDirty = () => {
@@ -102,35 +101,29 @@ export function GameCanvas() {
       });
     });
 
-    void Promise.all([loadAtlas(1), loadAtlas(2)]).then(
-      ([atlas1, atlas2]) => {
-        if (disposed) return;
-        const renderer = createRenderer(canvas, ruleset, { 1: atlas1, 2: atlas2 });
-        let lastIdleFrame = -1;
-        const frame = (time: number) => {
-          const wasAnimating = playback.active;
-          const animating = playback.update(time);
-          if (wasAnimating && !animating) useUiStore.setState({ animating: false });
-          const idleFrame = idleFrameAt(time);
-          if (dirty || animating || wasAnimating || idleFrame !== lastIdleFrame) {
-            dirty = false;
-            lastIdleFrame = idleFrame;
-            renderer.render({
-              state: session.getState(),
-              ui: useUiStore.getState(),
-              playback,
-              time,
-            });
-          }
-          frameHandle = requestAnimationFrame(frame);
-        };
-        frameHandle = requestAnimationFrame(frame);
-      },
-      (reason: unknown) => setError(reason instanceof Error ? reason.message : String(reason)),
-    );
+    // Sprites are vector art bundled with the code, so drawing can start at once.
+    let renderer: Renderer | null = null;
+    try {
+      renderer = createRenderer(canvas, ruleset, sprites);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : String(reason));
+    }
+    let lastIdleFrame = -1;
+    const frame = (time: number) => {
+      const wasAnimating = playback.active;
+      const animating = playback.update(time);
+      if (wasAnimating && !animating) useUiStore.setState({ animating: false });
+      const idleFrame = idleFrameAt(time);
+      if (dirty || animating || wasAnimating || idleFrame !== lastIdleFrame) {
+        dirty = false;
+        lastIdleFrame = idleFrame;
+        renderer?.render({ state: session.getState(), ui: useUiStore.getState(), playback, time });
+      }
+      frameHandle = requestAnimationFrame(frame);
+    };
+    if (renderer !== null) frameHandle = requestAnimationFrame(frame);
 
     return () => {
-      disposed = true;
       cancelAnimationFrame(frameHandle);
       observer.disconnect();
       unsubscribeUi();

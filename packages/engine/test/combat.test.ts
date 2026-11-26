@@ -7,6 +7,7 @@ import {
   previewAttack,
 } from '../src/index';
 import { apply, makeGame, makeMap, reject, rules, testRuleset, unitAt, withUnit } from './fixtures';
+import { navalRules } from './navalFixtures';
 
 describe('damage formula', () => {
   it('matches hand-computed values', () => {
@@ -82,6 +83,24 @@ describe('direct combat', () => {
     expect(preview.min).toBe(40);
   });
 
+  it('gives aircraft no cover from the terrain below them', () => {
+    const state = makeGame(
+      ['=F.M'],
+      [
+        { x: 0, y: 0, type: 'tank', owner: 0 },
+        { x: 1, y: 0, type: 'copter', owner: 1 },
+        { x: 3, y: 0, type: 'copter', owner: 1 },
+      ],
+      1,
+      navalRules,
+    );
+    const tank = unitAt(state, 0, 0).id;
+    // 10% base with nothing taken off for the forest, nor for the mountain.
+    expect(previewAttack(navalRules, state, tank, 0, 1)!.min).toBe(10);
+    const onMountain = withUnit(state, tank, { pos: 2 });
+    expect(previewAttack(navalRules, onMountain, tank, 2, 3)!.min).toBe(10);
+  });
+
   it('spends primary ammo and falls back to the secondary weapon', () => {
     const base = makeGame(
       ['===='],
@@ -106,6 +125,31 @@ describe('direct combat', () => {
     expect(previewAttack(rules, withUnit(dry, attackerId, { pos: 2 }), attackerId, 2, 3)!.min).toBe(
       40,
     );
+  });
+
+  it('reports a unit destroyed in combat as a combat loss', () => {
+    const state = makeGame(
+      ['====='],
+      [
+        { x: 0, y: 0, type: 'tank', owner: 0 },
+        { x: 1, y: 0, type: 'infantry', owner: 1, hp: 10 },
+        { x: 4, y: 0, type: 'infantry', owner: 1 },
+      ],
+    );
+    const defender = unitAt(state, 1, 0).id;
+    const result = apply(state, {
+      type: 'Attack',
+      unit: unitAt(state, 0, 0).id,
+      path: [],
+      target: 1,
+    });
+    expect(result.state.units[defender]).toBeUndefined();
+    expect(result.events).toContainEqual({
+      type: 'UnitDestroyed',
+      unit: defender,
+      at: 1,
+      cause: 'combat',
+    });
   });
 
   it('rejects bad targets', () => {

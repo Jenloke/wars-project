@@ -9,9 +9,32 @@ export type SaveMigration = (save: SaveDocument) => SaveDocument;
 
 export type SaveMigrations = Readonly<Record<number, SaveMigration>>;
 
+function isDocument(value: unknown): value is SaveDocument {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 /**
- * Upgrade steps, keyed by the version they upgrade *from*. Version 1 is the first
- * format, so there is nothing to migrate yet. To change the format:
+ * Format 2 gave every unit a `dived` flag and moved the state to schema 2. No unit
+ * could dive before, so every flag starts false. Keys keep their order, and the
+ * flag goes last as it does in new units, so the migrated snapshot still matches
+ * a replay of the log byte for byte.
+ */
+function addDivedFlag(save: SaveDocument): SaveDocument {
+  const state = save['state'];
+  if (!isDocument(state)) return { ...save, version: 2 };
+  let units = state['units'];
+  if (isDocument(units)) {
+    const migrated: Record<string, unknown> = {};
+    for (const [id, unit] of Object.entries(units)) {
+      migrated[id] = isDocument(unit) ? { ...unit, dived: false } : unit;
+    }
+    units = migrated;
+  }
+  return { ...save, version: 2, state: { ...state, schemaVersion: 2, units } };
+}
+
+/**
+ * Upgrade steps, keyed by the version they upgrade *from*. To change the format:
  *
  *   1. bump `SAVE_VERSION` to N + 1,
  *   2. add `[N]: (save) => ({ ...save, version: N + 1, ...changed fields })`,
@@ -19,11 +42,9 @@ export type SaveMigrations = Readonly<Record<number, SaveMigration>>;
  *
  * Steps work on raw JSON, so they never depend on the current TypeScript types.
  */
-export const SAVE_MIGRATIONS: SaveMigrations = {};
-
-function isDocument(value: unknown): value is SaveDocument {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
+export const SAVE_MIGRATIONS: SaveMigrations = {
+  1: addDivedFlag,
+};
 
 /**
  * Brings a parsed save document up to `target`, one step at a time. Returns the

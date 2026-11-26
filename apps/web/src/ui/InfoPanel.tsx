@@ -62,6 +62,11 @@ function UnitInfo({ state, tile }: { state: GameState; tile: TileIndex }) {
     );
   }
   const def = ruleset.units[unit.type]!;
+  const dailyFuel = unit.dived ? def.divedFuelPerDay : def.fuelPerDay;
+  const status = [
+    unit.dived && 'Dived',
+    unit.moved && unit.owner === state.activePlayer && 'Done',
+  ].filter((part) => part !== false);
   return (
     <section className="info-card">
       <h2 style={{ color: ownerColor(unit.owner) }}>{def.name}</h2>
@@ -73,6 +78,7 @@ function UnitInfo({ state, tile }: { state: GameState; tile: TileIndex }) {
         <dt>Fuel</dt>
         <dd>
           {unit.fuel} / {def.maxFuel}
+          {dailyFuel > 0 && <span className="muted"> · {dailyFuel}/day</span>}
         </dd>
         {def.maxAmmo > 0 && (
           <>
@@ -100,10 +106,16 @@ function UnitInfo({ state, tile }: { state: GameState; tile: TileIndex }) {
             </dd>
           </>
         )}
-        {unit.moved && unit.owner === state.activePlayer && (
+        {def.ignoresTerrainDefence && (
+          <>
+            <dt>Cover</dt>
+            <dd className="muted">None while flying</dd>
+          </>
+        )}
+        {status.length > 0 && (
           <>
             <dt>Status</dt>
-            <dd>Done</dd>
+            <dd>{status.join(', ')}</dd>
           </>
         )}
       </dl>

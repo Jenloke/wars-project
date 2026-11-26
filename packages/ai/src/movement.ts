@@ -1,4 +1,5 @@
 import {
+  defenceStars,
   isIndirect,
   NO_DAMAGE,
   NO_UNIT,
@@ -12,6 +13,7 @@ import {
 } from '@tactics/engine';
 import { dangerAt, reachOf, standTiles, unitValue, type Board } from './board';
 import { costsTo, FAR, tilesInRange } from './distance';
+import { fuelToReturn, runningDry } from './fuel';
 import { needsRepair, type Plan } from './plan';
 import type { Role } from './profile';
 
@@ -158,6 +160,82 @@ export function ordersFor(board: Board, plan: Plan, unit: Unit, cache: GoalCache
 interface MoveContext {
   /** True if the AI could afford to build this turn, so bases should be left clear. */
   readonly canBuild: boolean;
+  /**
+   * Per tile: the move types (as a bit set) of worn-down friends that could repair
+   * or refuel on it. Units that cannot use such a tile themselves keep off it.
+   */
+  readonly reserved: Uint32Array;
+}
+
+/**
+ * Owned properties where a friend that needs repair (or fuel) could be serviced,
+ * marked with the move types it is needed for.
+ */
+function reservedTiles(board: Board): Uint32Array {
+  const { ruleset, state, me } = board;
+  const reserved = new Uint32Array(state.width * state.height);
+  let needs = 0;
+  for (const unit of board.mine) {
+    if (needsRepair(board, unit)) needs |= 1 << ruleset.units[unit.type]!.moveType;
+  }
+  if (needs === 0) return reserved;
+  for (let tile = 0; tile < reserved.length; tile++) {
+    if (state.owner[tile] !== me) continue;
+    const repairs = ruleset.terrain[state.terrain[tile]!]!.repairs;
+    for (let moveType = 0; moveType < repairs.length; moveType++) {
+      if ((needs & (1 << moveType)) !== 0 && repairs[moveType] === 1)
+        reserved[tile]! |= 1 << moveType;
+    }
+  }
+  return reserved;
+}
+
+/** True if `unit` should keep off `tile`, which a friend needs and it cannot use. */
+function keepsOff(board: Board, unit: Unit, tile: TileIndex, context: MoveContext): boolean {
+  const own = 1 << board.ruleset.units[unit.type]!.moveType;
+  return context.reserved[tile] !== 0 && (context.reserved[tile]! & own) === 0;
+}
+
+/**
+ * Whether a unit that can dive should be under once it stands on `tile`, having
+ * spent `cost` fuel getting there; null for units that cannot dive. Diving keeps
+ * it out of reach of most attackers but burns fuel fast, so it stays up when
+ * nothing that could hit it surfaced is near, or when the dived burn would leave
+ * it unable to get home.
+ */
+function diveAt(board: Board, unit: Unit, tile: TileIndex, cost: number): boolean | null {
+  if (!board.ruleset.units[unit.type]!.canDive) return null;
+  const under: Unit = { ...unit, dived: true, fuel: unit.fuel - cost };
+  if (runningDry(board, under, tile)) return false;
+  const exposed = dangerAt(board, { ...unit, dived: false }, tile, unit.hp);
+  return exposed > dangerAt(board, under, tile, unit.hp);
+}
+
+/** The unit as it would stand on `tile`: dived or not, as `diveAt` decides. */
+function asItWouldStand(board: Board, unit: Unit, tile: TileIndex): Unit {
+  const dive = diveAt(board, unit, tile, 0);
+  return dive === null || dive === unit.dived ? unit : { ...unit, dived: dive };
+}
+
+/** The order that takes `unit` along `path` to `tile`: a move, or a dive or surface there. */
+function orderAlong(
+  board: Board,
+  unit: Unit,
+  path: TileIndex[],
+  tile: TileIndex,
+  cost: number,
+): Action {
+  const dive = diveAt(board, unit, tile, cost);
+  if (dive === true && !unit.dived) return { type: 'Dive', unit: unit.id, path };
+  if (dive === false && unit.dived) return { type: 'Surface', unit: unit.id, path };
+  return { type: 'Move', unit: unit.id, path };
+}
+
+/** A dive or surface without moving, if the unit should change where it stands. */
+function diveInPlace(board: Board, unit: Unit): Action | null {
+  const dive = diveAt(board, unit, unit.pos, 0);
+  if (dive === null || dive === unit.dived) return null;
+  return { type: dive ? 'Dive' : 'Surface', unit: unit.id, path: [] };
 }
 
 function tileScore(
@@ -174,11 +252,15 @@ function tileScore(
 
   let score =
     -(orders.goal[tile]! / Math.max(1, def.movePoints)) * profile.progress[orders.role] * worth;
-  score -= profile.danger[orders.role] * board.caution * dangerAt(board, unit, tile, unit.hp);
-  score += profile.terrainStar * terrain.defence * worth;
+  const standing = asItWouldStand(board, unit, tile);
+  score -= profile.danger[orders.role] * board.caution * dangerAt(board, standing, tile, unit.hp);
+  score += profile.terrainStar * defenceStars(ruleset, state, unit.type, tile) * worth;
   if (state.owner[tile] === board.me) {
-    if (context.canBuild && terrain.builds.length > 0)
+    // A building left clear can build, unless this unit has come to it for repairs.
+    const repairsHere = orders.role === 'retreat' && terrain.repairs[def.moveType] === 1;
+    if (context.canBuild && terrain.builds.length > 0 && !repairsHere) {
       score -= profile.blockBaseDays * board.income;
+    }
     // Standing on our HQ is the surest way to stop an enemy capturing it.
     if (terrain.isHq && board.captureReach[tile] === 1) score += profile.guardHqDays * board.income;
   }
@@ -194,10 +276,14 @@ export function bestMove(
 ): TileIndex | null {
   const field = reachOf(board, unit);
   const stay = tileScore(board, unit, orders, unit.pos, context);
+  // Units heading out must keep enough fuel to come back; retreating ones are coming back.
+  const outbound = orders.role !== 'retreat';
   let best = unit.pos;
   let bestScore = stay;
   for (const tile of standTiles(board, unit, field)) {
     if (tile === unit.pos) continue;
+    if (outbound && unit.fuel - field.cost[tile]! < fuelToReturn(board, unit, tile)) continue;
+    if (keepsOff(board, unit, tile, context)) continue;
     const score = tileScore(board, unit, orders, tile, context);
     if (score > bestScore) {
       best = tile;
@@ -225,7 +311,7 @@ export function findMove(
       cheapest = Math.min(cheapest, unitCost(ruleset, state, board.me, unitType));
     }
   }
-  const context: MoveContext = { canBuild: funds >= cheapest };
+  const context: MoveContext = { canBuild: funds >= cheapest, reserved: reservedTiles(board) };
 
   const movers: { unit: Unit; orders: Orders }[] = [];
   for (const unit of board.mine) {
@@ -233,19 +319,34 @@ export function findMove(
     const orders = ordersFor(board, plan, unit, cache);
     if (orders !== null) movers.push({ unit, orders });
   }
+  // Units parked on a property a worn-down friend needs to repair or refuel at
+  // (a unit built there last turn, say) move first, so they do not shut it out.
+  // The friend may not even have a way home yet: occupied properties are not goals.
+  const blocking = (mover: { unit: Unit; orders: Orders }) =>
+    mover.orders.role !== 'retreat' && context.reserved[mover.unit.pos] !== 0 ? 0 : 1;
   movers.sort(
-    (a, b) => a.orders.goal[a.unit.pos]! - b.orders.goal[b.unit.pos]! || a.unit.id - b.unit.id,
+    (a, b) =>
+      blocking(a) - blocking(b) ||
+      a.orders.goal[a.unit.pos]! - b.orders.goal[b.unit.pos]! ||
+      a.unit.id - b.unit.id,
   );
 
   for (const { unit, orders } of movers) {
     const tile = bestMove(board, unit, orders, context);
-    if (tile === null) continue;
-    const action: Action = {
-      type: 'Move',
-      unit: unit.id,
-      path: pathTo(reachOf(board, unit), tile, []),
-    };
-    if (isLegal(action)) return action;
+    let action: Action | null;
+    if (tile === null) {
+      action = diveInPlace(board, unit);
+    } else {
+      const field = reachOf(board, unit);
+      action = orderAlong(board, unit, pathTo(field, tile, []), tile, field.cost[tile]!);
+    }
+    if (action !== null && isLegal(action)) return action;
+  }
+  // Units with nowhere to go may still need to dive or surface where they are.
+  for (const unit of board.mine) {
+    if (unit.moved || movers.some((mover) => mover.unit === unit)) continue;
+    const action = diveInPlace(board, unit);
+    if (action !== null && isLegal(action)) return action;
   }
   return null;
 }

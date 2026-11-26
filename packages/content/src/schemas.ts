@@ -17,9 +17,14 @@ export const unitSchema = z
     maxRange: count,
     canCapture: z.boolean(),
     canSupply: z.boolean(),
+    tags: z.array(id).optional(),
     transport: z
       .object({ capacity: z.number().int().positive(), carries: z.array(id).min(1) })
       .optional(),
+    fuelPerDay: count.optional(),
+    lostWithoutFuel: z.boolean().optional(),
+    ignoresTerrainDefence: z.boolean().optional(),
+    dive: z.object({ fuelPerDay: count, attackableBy: z.array(id).min(1) }).optional(),
   })
   .refine((unit) => unit.minRange <= unit.maxRange, 'minRange must not exceed maxRange')
   .refine(

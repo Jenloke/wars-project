@@ -4,9 +4,8 @@
   "type": "module",
   "packageManager": "pnpm@12.14.0",
   "scripts": {
-    "dev": "pnpm --filter @tactics/sprites build && pnpm --filter @tactics/web dev",
-    "build": "pnpm --filter @tactics/sprites build && pnpm --filter @tactics/web build",
-    "sprites": "pnpm --filter @tactics/sprites build",
+    "dev": "pnpm --filter @tactics/web dev",
+    "build": "pnpm --filter @tactics/web build",
     "test": "vitest run",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint .",

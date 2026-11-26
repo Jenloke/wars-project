@@ -1,5 +1,5 @@
-import { CELL } from '@tactics/sprites';
 import { NO_TILE, type TileIndex } from '@tactics/engine';
+import { GRID } from '@tactics/sprites';
 
 export const MIN_ZOOM = 1;
 export const MAX_ZOOM = 4;
@@ -19,16 +19,12 @@ export interface Viewport {
 }
 
 /**
- * Device pixels per sprite pixel. Always an integer so every sprite pixel maps to
- * a whole block of device pixels, whatever the display scaling.
+ * Size of one tile in device pixels: 48 CSS pixels per zoom step, at the
+ * display's real pixel ratio. Always a whole number, so tiles meet without gaps;
+ * sprites are vector art rasterized at exactly this size, so any ratio is crisp.
  */
-export function renderScale(camera: Camera, viewport: Viewport): number {
-  return camera.zoom * Math.max(1, Math.round(viewport.dpr));
-}
-
-/** Size of one tile in device pixels. */
 export function tileSize(camera: Camera, viewport: Viewport): number {
-  return CELL * renderScale(camera, viewport);
+  return Math.max(1, Math.round(GRID * camera.zoom * viewport.dpr));
 }
 
 function clampAxis(offset: number, world: number, view: number): number {

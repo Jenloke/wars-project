@@ -1,5 +1,6 @@
 /** Public API of the content package. All data is validated once at import. */
 import { MapRegistry } from './maps/registry';
+import { ternReach } from './maps/ternReach';
 import { twinFords } from './maps/twinFords';
 import { ruleset } from './ruleset';
 
@@ -7,6 +8,7 @@ export { ruleset } from './ruleset';
 
 export const maps = new MapRegistry(ruleset);
 maps.register(twinFords);
+maps.register(ternReach);
 
 export const DEFAULT_MAP_ID = twinFords.id;
 
@@ -20,15 +22,20 @@ export {
   type AsciiMapMeta,
 } from './maps/ascii';
 export { TWIN_FORDS_ASCII, twinFords } from './maps/twinFords';
+export { TERN_REACH_ASCII, ternReach } from './maps/ternReach';
 export { mapSchema, rulesetSchema } from './schemas';
 export {
+  FALLBACK_SPRITES,
   MASK_EAST,
   MASK_NORTH,
   MASK_SOUTH,
   MASK_WEST,
+  terrainVisual,
   terrainVisuals,
-  unitSpriteId,
+  unitVisual,
+  unitVisuals,
   type AutotileRule,
   type TerrainVisual,
+  type UnitVisual,
 } from './visuals';
 export { actionSchema, readSave, saveSchema } from './saves';

@@ -8,16 +8,33 @@
 export const IMPASSABLE = 255;
 export const NO_DAMAGE = -1;
 
+/**
+ * Names a group of units in rules data. A unit matches a selector equal to its
+ * id, its move type, or one of its tags, so rules can say "infantry", "tread" or
+ * "copter" without listing every unit.
+ */
+export type UnitSelector = string;
+
 export interface RawTransport {
   readonly capacity: number;
-  /** Move types this transport can carry. */
-  readonly carries: readonly string[];
+  /** Units this transport can carry. */
+  readonly carries: readonly UnitSelector[];
+}
+
+/** A unit that can submerge (or otherwise hide) from most attackers. */
+export interface RawDive {
+  /** Daily fuel use while dived, in place of the unit's `fuelPerDay`. */
+  readonly fuelPerDay: number;
+  /** Units that can still attack it while it is dived. */
+  readonly attackableBy: readonly UnitSelector[];
 }
 
 export interface RawUnitDef {
   readonly id: string;
   readonly name: string;
   readonly moveType: string;
+  /** Free-form classes (such as "copter" or "naval") that selectors can name. */
+  readonly tags?: readonly string[] | undefined;
   readonly movePoints: number;
   readonly cost: number;
   readonly maxFuel: number;
@@ -29,6 +46,17 @@ export interface RawUnitDef {
   readonly canCapture: boolean;
   readonly canSupply: boolean;
   readonly transport?: RawTransport | undefined;
+  /** Fuel used at the start of each of its owner's turns, on top of what moving costs. */
+  readonly fuelPerDay?: number | undefined;
+  /**
+   * Destroyed at the start of its owner's turn when its tank is empty after the
+   * daily use and any resupply: aircraft crash and ships sink.
+   */
+  readonly lostWithoutFuel?: boolean | undefined;
+  /** True for units that terrain gives no cover, such as aircraft. */
+  readonly ignoresTerrainDefence?: boolean | undefined;
+  /** Present for units that can dive. */
+  readonly dive?: RawDive | undefined;
 }
 
 export interface RawPropertyDef {
@@ -111,8 +139,17 @@ export interface CompiledUnit {
   readonly maxRange: number;
   readonly canCapture: boolean;
   readonly canSupply: boolean;
+  readonly tags: readonly string[];
+  readonly fuelPerDay: number;
+  readonly lostWithoutFuel: boolean;
+  readonly ignoresTerrainDefence: boolean;
+  readonly canDive: boolean;
+  /** Daily fuel use while dived. */
+  readonly divedFuelPerDay: number;
+  /** Per attacker unit type: 1 if it can attack this unit while it is dived. */
+  readonly divedAttackers: Uint8Array;
   readonly capacity: number;
-  /** Per move type: 1 if this transport can carry it. */
+  /** Per unit type: 1 if this transport can carry it. */
   readonly carries: Uint8Array;
 }
 
@@ -178,6 +215,32 @@ function lookup(index: ReadonlyMap<string, number>, id: string, kind: string): n
   return value;
 }
 
+function matches(selector: UnitSelector, unit: RawUnitDef): boolean {
+  return selector === unit.id || selector === unit.moveType || (unit.tags ?? []).includes(selector);
+}
+
+/**
+ * Per unit type: 1 if any selector names it. A selector that names no unit is a
+ * typo in the data, so it throws rather than silently matching nothing.
+ */
+export function selectUnits(
+  units: readonly RawUnitDef[],
+  selectors: readonly UnitSelector[],
+  context: string,
+): Uint8Array {
+  const selected = new Uint8Array(units.length);
+  for (const selector of selectors) {
+    let found = false;
+    units.forEach((unit, index) => {
+      if (!matches(selector, unit)) return;
+      selected[index] = 1;
+      found = true;
+    });
+    if (!found) throw new Error(`${context}: "${selector}" matches no unit`);
+  }
+  return selected;
+}
+
 function compileCommander(
   raw: RawCommanderDef,
   unitCount: number,
@@ -232,10 +295,14 @@ export function compileRuleset(raw: RawRuleset): CompiledRuleset {
   if (raw.commanders.length === 0) throw new Error('Ruleset needs a default commander');
 
   const units: CompiledUnit[] = raw.units.map((u) => {
-    const carries = new Uint8Array(moveTypeCount);
-    if (u.transport !== undefined) {
-      for (const mt of u.transport.carries) carries[lookup(moveTypeIndex, mt, 'move type')] = 1;
-    }
+    const carries =
+      u.transport === undefined
+        ? new Uint8Array(unitCount)
+        : selectUnits(raw.units, u.transport.carries, `Unit "${u.id}" transport`);
+    const divedAttackers =
+      u.dive === undefined
+        ? new Uint8Array(unitCount)
+        : selectUnits(raw.units, u.dive.attackableBy, `Unit "${u.id}" dive`);
     return {
       id: u.id,
       name: u.name,
@@ -248,6 +315,13 @@ export function compileRuleset(raw: RawRuleset): CompiledRuleset {
       maxRange: u.maxRange,
       canCapture: u.canCapture,
       canSupply: u.canSupply,
+      tags: u.tags ?? [],
+      fuelPerDay: u.fuelPerDay ?? 0,
+      lostWithoutFuel: u.lostWithoutFuel ?? false,
+      ignoresTerrainDefence: u.ignoresTerrainDefence ?? false,
+      canDive: u.dive !== undefined,
+      divedFuelPerDay: u.dive?.fuelPerDay ?? u.fuelPerDay ?? 0,
+      divedAttackers,
       capacity: u.transport?.capacity ?? 0,
       carries,
     };

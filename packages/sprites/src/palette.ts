@@ -1,6 +1,6 @@
 /**
  * The one shared palette. Every fill in every sprite SVG must be one of these
- * colours or a team placeholder; the atlas build rejects anything else.
+ * colours or a team placeholder; the sprite loader rejects anything else.
  */
 export const palette = {
   grassLight: '#8cc257',
@@ -55,7 +55,7 @@ export const palette = {
 
 /**
  * Colours that mark team-coloured surfaces in sprite sources: light, mid, dark,
- * deep. The atlas build swaps them for a faction ramp.
+ * deep. They are swapped for a faction ramp when the sprite is rasterized.
  */
 export const TEAM_PLACEHOLDERS = ['#ff00ff', '#cc00cc', '#990099', '#660066'] as const;
 
@@ -71,5 +71,10 @@ export const TEAM_RAMPS: readonly TeamRamp[] = [
 ];
 
 export const FACTION_COUNT = 4;
-/** Atlas variant index of the neutral ramp. */
+/** Index of the neutral ramp in `TEAM_RAMPS`. */
 export const NEUTRAL_VARIANT = FACTION_COUNT;
+
+/** The ramp a sprite owned by player slot `owner` is drawn in; neutral for `owner < 0`. */
+export function teamRamp(owner: number): TeamRamp {
+  return TEAM_RAMPS[owner < 0 ? NEUTRAL_VARIANT : owner % FACTION_COUNT]!;
+}

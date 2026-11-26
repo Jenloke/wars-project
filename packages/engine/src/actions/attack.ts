@@ -80,7 +80,7 @@ function strike(
 
   const remaining = defender.hp - damage;
   if (remaining <= 0) {
-    destroyUnit(ruleset, draft, defender.id);
+    destroyUnit(ruleset, draft, defender.id, 'combat');
     return 0;
   }
   patchUnit(draft, defender.id, { hp: remaining });

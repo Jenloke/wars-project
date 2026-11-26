@@ -9,7 +9,8 @@ export const NO_UNIT = -1;
 export const NO_OWNER = -1;
 export const NO_TILE = -1;
 
-export const SCHEMA_VERSION = 1;
+/** Version of the `GameState` shape. 2 added `Unit.dived`. */
+export const SCHEMA_VERSION = 2;
 
 export type ControllerKind = 'local' | 'ai' | 'remote';
 
@@ -29,6 +30,8 @@ export interface Unit {
   readonly cargo: readonly UnitId[];
   /** Transport carrying this unit, or `NO_UNIT`. */
   readonly carrier: UnitId;
+  /** True while the unit is dived, out of reach of most attackers. */
+  readonly dived: boolean;
 }
 
 export interface Player {
@@ -41,6 +44,9 @@ export interface Player {
 }
 
 export type WinReason = 'hq' | 'rout' | 'resign';
+
+/** Why a unit left play: shot down, or out of fuel (crashed or sank). */
+export type DestroyCause = 'combat' | 'fuel';
 
 export type GameStatus =
   | { readonly kind: 'playing' }
@@ -102,6 +108,8 @@ export type Action =
       readonly drops: readonly UnloadDrop[];
     }
   | { readonly type: 'Supply'; readonly unit: UnitId; readonly path: readonly TileIndex[] }
+  | { readonly type: 'Dive'; readonly unit: UnitId; readonly path: readonly TileIndex[] }
+  | { readonly type: 'Surface'; readonly unit: UnitId; readonly path: readonly TileIndex[] }
   | { readonly type: 'Build'; readonly at: TileIndex; readonly unitType: number }
   | { readonly type: 'EndTurn' }
   | { readonly type: 'Resign' };
@@ -129,6 +137,7 @@ export type GameEvent =
       readonly type: 'UnitDestroyed';
       readonly unit: UnitId;
       readonly at: TileIndex;
+      readonly cause: DestroyCause;
     }
   | {
       readonly type: 'CaptureProgress';
@@ -140,6 +149,8 @@ export type GameEvent =
   | { readonly type: 'UnitBuilt'; readonly unit: UnitId; readonly at: TileIndex }
   | { readonly type: 'Supplied'; readonly by: UnitId; readonly targets: readonly TileIndex[] }
   | { readonly type: 'Joined'; readonly unit: UnitId; readonly into: UnitId }
+  | { readonly type: 'Dived'; readonly unit: UnitId }
+  | { readonly type: 'Surfaced'; readonly unit: UnitId }
   | { readonly type: 'Loaded'; readonly unit: UnitId; readonly into: UnitId }
   | {
       readonly type: 'Unloaded';

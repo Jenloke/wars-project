@@ -1,7 +1,7 @@
 import { manhattan } from './grid';
 import { NO_DAMAGE, type CompiledRuleset } from './ruleset';
 import { NO_UNIT, type GameState, type TileIndex, type Unit, type UnitId } from './types';
-import { hpPips, maxPips } from './units';
+import { defenceStars, hpPips, maxPips } from './units';
 
 /** True if the attacker would fire its ammo-using primary weapon at this defender. */
 export function usesPrimaryWeapon(
@@ -17,8 +17,9 @@ export function usesPrimaryWeapon(
 }
 
 /**
- * Base damage percent for a matchup, or `NO_DAMAGE` if the attacker has no weapon
- * that can hit the defender. The primary weapon is preferred while it has ammo.
+ * Base damage percent for a matchup of unit types, or `NO_DAMAGE` if the attacker
+ * has no weapon that can hit the defender. The primary weapon is preferred while
+ * it has ammo. `baseDamageOn` also accounts for a dived defender.
  */
 export function weaponBaseDamage(
   ruleset: CompiledRuleset,
@@ -32,6 +33,17 @@ export function weaponBaseDamage(
     if (primary !== NO_DAMAGE) return primary;
   }
   return ruleset.secondaryDamage[cell]!;
+}
+
+/**
+ * Base damage percent `attacker` deals to `defender` as they stand, or `NO_DAMAGE`.
+ * A dived defender can only be hit by the units its dive rule names.
+ */
+export function baseDamageOn(ruleset: CompiledRuleset, attacker: Unit, defender: Unit): number {
+  if (defender.dived && ruleset.units[defender.type]!.divedAttackers[attacker.type] !== 1) {
+    return NO_DAMAGE;
+  }
+  return weaponBaseDamage(ruleset, attacker.type, attacker.ammo, defender.type);
 }
 
 /**
@@ -79,13 +91,13 @@ export function damageBetween(
   defenderTile: TileIndex,
   luck: number,
 ): number {
-  const base = weaponBaseDamage(ruleset, attacker.type, attacker.ammo, defender.type);
+  const base = baseDamageOn(ruleset, attacker, defender);
   if (base === NO_DAMAGE) return NO_DAMAGE;
   const attackPercent =
     ruleset.commanders[state.players[attacker.owner]!.commander]!.attack[attacker.type]!;
   const defencePercent =
     ruleset.commanders[state.players[defender.owner]!.commander]!.defence[defender.type]!;
-  const stars = ruleset.terrain[state.terrain[defenderTile]!]!.defence;
+  const stars = defenceStars(ruleset, state, defender.type, defenderTile);
   return computeDamage(
     ruleset,
     base,
@@ -108,7 +120,7 @@ export function canCounter(
   if (distance !== 1) return false;
   const def = ruleset.units[defender.type]!;
   if (def.minRange !== 1) return false;
-  return weaponBaseDamage(ruleset, defender.type, defender.ammo, attacker.type) !== NO_DAMAGE;
+  return baseDamageOn(ruleset, defender, attacker) !== NO_DAMAGE;
 }
 
 export interface AttackPreview {

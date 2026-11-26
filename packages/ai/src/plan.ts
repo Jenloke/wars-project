@@ -1,6 +1,7 @@
 import { hpPips, NO_OWNER, NO_UNIT, type TileIndex, type Unit, type UnitId } from '@tactics/engine';
 import type { Board } from './board';
 import { costsFrom, FAR } from './distance';
+import { runningDry } from './fuel';
 
 /** Decisions that span the whole army, made once per position. */
 export interface Plan {
@@ -24,14 +25,18 @@ export function propertyValue(board: Board, tile: TileIndex): number {
   return days * board.income;
 }
 
-/** True if the unit should head back to an owned property for repair or supply. */
+/**
+ * True if the unit should head back to an owned property for repair or supply,
+ * including an aircraft or ship whose fuel will soon only just get it home.
+ */
 export function needsRepair(board: Board, unit: Unit): boolean {
   const { ruleset, profile } = board;
   const def = ruleset.units[unit.type]!;
   return (
     hpPips(ruleset, unit.hp) <= profile.retreatPips ||
     unit.fuel <= def.maxFuel * profile.lowFuel ||
-    (def.maxAmmo > 0 && unit.ammo === 0)
+    (def.maxAmmo > 0 && unit.ammo === 0) ||
+    runningDry(board, unit)
   );
 }
 

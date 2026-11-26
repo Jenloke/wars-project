@@ -2,6 +2,7 @@ import { applyAttack } from './actions/attack';
 import { applyBuild } from './actions/build';
 import { applyCapture } from './actions/capture';
 import type { ActionError } from './actions/common';
+import { applyDive, applySurface } from './actions/dive';
 import { applyJoin } from './actions/join';
 import { applyMove } from './actions/move';
 import { applySupply } from './actions/supply';
@@ -27,6 +28,10 @@ function dispatch(ruleset: CompiledRuleset, draft: Draft, action: Action): Actio
       return applyUnload(ruleset, draft, action);
     case 'Supply':
       return applySupply(ruleset, draft, action);
+    case 'Dive':
+      return applyDive(ruleset, draft, action);
+    case 'Surface':
+      return applySurface(ruleset, draft, action);
     case 'Build':
       return applyBuild(ruleset, draft, action);
     case 'EndTurn':

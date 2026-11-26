@@ -2,7 +2,7 @@ import { NO_DAMAGE, weaponBaseDamage, type Action, type GameState } from '@tacti
 import { describe, expect, it } from 'vitest';
 import { readBoard } from '../src/board';
 import { makePlan } from '../src/plan';
-import { findBuild } from '../src/production';
+import { buildableOnMap, findBuild } from '../src/production';
 import { DEFAULT_PROFILE } from '../src/profile';
 import { makeGame, rules, unitType } from './fixtures';
 
@@ -20,6 +20,45 @@ function base(attacker: number, defender: number): number {
 
 const tank = unitType('tank');
 const infantry = unitType('infantry');
+
+describe('buildableOnMap', () => {
+  const buildable = (rows: readonly string[]) => {
+    const board = readBoard(rules, makeGame(rows), DEFAULT_PROFILE);
+    return [...buildableOnMap(board)].map((type) => rules.units[type]!.id);
+  };
+
+  it('expects only units that some property on the map can build', () => {
+    const landOnly = buildable(['R....', '....b']);
+    expect(landOnly).toContain('tank');
+    expect(landOnly).not.toContain('submarine');
+    expect(landOnly).not.toContain('fighter');
+
+    // Neutral properties count too: whoever captures them can build there.
+    const withHarbours = buildable(['R.Q~~', 'T...b']);
+    expect(withHarbours).toEqual(expect.arrayContaining(['tank', 'submarine', 'fighter']));
+  });
+});
+
+describe('production at ports', () => {
+  it('builds no ships in a harbour that cannot reach the enemy', () => {
+    const state = makeGame(
+      ['P~.......', '~~.......'],
+      [{ x: 8, y: 0, type: 'tank', owner: 1 }],
+      [30000, 0],
+    );
+    const board = readBoard(rules, state, DEFAULT_PROFILE);
+    expect(findBuild(board, makePlan(board))).toBeNull();
+  });
+
+  it('builds a battleship that can shell the enemy from open water', () => {
+    const state = makeGame(
+      ['P~~~~~..', '~~~~~~..'],
+      [{ x: 7, y: 0, type: 'tank', owner: 1 }],
+      [30000, 0],
+    );
+    expect(rules.units[build(state).unitType]!.id).toBe('battleship');
+  });
+});
 
 describe('production', () => {
   it('builds capturers while neutral properties are unclaimed', () => {

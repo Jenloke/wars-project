@@ -9,6 +9,7 @@ import {
   type Player,
   type PlayerIndex,
   type TileIndex,
+  type DestroyCause,
   type Unit,
   type UnitId,
   type WinReason,
@@ -117,10 +118,15 @@ function hasUnits(state: GameState, player: PlayerIndex): boolean {
   return false;
 }
 
-/** Destroys a unit in combat. Its owner is routed if that was their last unit. */
-export function destroyUnit(ruleset: CompiledRuleset, draft: Draft, id: UnitId): void {
+/** Destroys a unit and its cargo. Its owner is routed if that was their last unit. */
+export function destroyUnit(
+  ruleset: CompiledRuleset,
+  draft: Draft,
+  id: UnitId,
+  cause: DestroyCause,
+): void {
   const unit = draft.state.units[id]!;
-  draft.events.push({ type: 'UnitDestroyed', unit: id, at: unit.pos });
+  draft.events.push({ type: 'UnitDestroyed', unit: id, at: unit.pos, cause });
   removeUnit(ruleset, draft, id);
   if (!hasUnits(draft.state, unit.owner)) {
     defeatPlayer(ruleset, draft, unit.owner, 'rout', NO_OWNER);

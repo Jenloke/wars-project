@@ -25,7 +25,7 @@ export function canLoadInto(ruleset: CompiledRuleset, mover: Unit, transport: Un
     mover.id !== transport.id &&
     mover.owner === transport.owner &&
     transport.cargo.length < def.capacity &&
-    def.carries[ruleset.units[mover.type]!.moveType] === 1
+    def.carries[mover.type] === 1
   );
 }
 
@@ -40,6 +40,11 @@ export function canCaptureAt(
     ruleset.terrain[state.terrain[tile]!]!.isProperty &&
     state.owner[tile] !== unit.owner
   );
+}
+
+/** True if `unit` can dive now. */
+export function canDiveUnit(ruleset: CompiledRuleset, unit: Unit): boolean {
+  return ruleset.units[unit.type]!.canDive && !unit.dived;
 }
 
 export function canEnterTerrain(

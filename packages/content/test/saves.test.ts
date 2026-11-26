@@ -12,6 +12,7 @@ import {
 } from '@tactics/engine';
 import { describe, expect, it } from 'vitest';
 import { actionSchema, readSave, ruleset, twinFords } from '../src/index';
+import saveV1 from './fixtures/save-v1.json';
 
 const compiled = compileRuleset(ruleset);
 const SAVED_AT = '2026-11-12T09:30:00.000Z';
@@ -67,6 +68,18 @@ describe('readSave', () => {
     expect(restored.actions).toEqual(record.actions);
     expect(restored.map).toEqual(record.map);
     expect(restored.state.capture[tileAt(2, 3)]).toBe(10);
+  });
+
+  it('loads a format 1 save written before units could dive', () => {
+    // Written by the phase 3 build: the computer playing eight days of Twin Fords.
+    expect(saveV1.version).toBe(1);
+    const restored = readSave(JSON.stringify(saveV1), compiled);
+    expect(restored.actions).toHaveLength(saveV1.actions.length);
+    expect(restored.state.schemaVersion).toBe(2);
+    expect(restored.state.day).toBe(saveV1.state.day);
+    const units = Object.values(restored.state.units);
+    expect(units).toHaveLength(Object.keys(saveV1.state.units).length);
+    for (const unit of units) expect(unit.dived).toBe(false);
   });
 
   it('rejects text that is not a save', () => {
@@ -131,6 +144,8 @@ describe('actionSchema', () => {
       { type: 'Load', unit: 1, path: [5] },
       { type: 'Unload', unit: 1, path: [5], drops: [{ cargo: 2, to: 6 }] },
       { type: 'Supply', unit: 1, path: [] },
+      { type: 'Dive', unit: 1, path: [5] },
+      { type: 'Surface', unit: 1, path: [] },
       { type: 'Build', at: 0, unitType: 3 },
       { type: 'EndTurn' },
       { type: 'Resign' },
@@ -144,6 +159,8 @@ describe('actionSchema', () => {
       { type: 'Move', unit: 1.5, path: [] },
       { type: 'Attack', unit: 1, path: [-1], target: 0 },
       { type: 'Unload', unit: 1, path: [], drops: [] },
+      { type: 'Dive', unit: 1 },
+      { type: 'Surface', path: [] },
       { type: 'Move', unit: 1, path: Array.from({ length: 65 }, (_unused, i) => i) },
     ]) {
       expect(actionSchema.safeParse(action).success).toBe(false);

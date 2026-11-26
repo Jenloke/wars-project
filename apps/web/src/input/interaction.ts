@@ -26,7 +26,8 @@ import { IDLE_SELECTION, useUiStore, type DialogKind } from '../store/uiStore';
  * Nothing here changes game state directly.
  */
 
-export type UnitCommand = 'attack' | 'capture' | 'supply' | 'join' | 'load' | 'wait';
+export type UnitCommand =
+  'attack' | 'capture' | 'supply' | 'dive' | 'surface' | 'join' | 'load' | 'wait';
 
 let field: MoveField = createMoveField(0);
 
@@ -256,6 +257,12 @@ export function chooseCommand(command: UnitCommand): void {
       break;
     case 'supply':
       submit({ type: 'Supply', unit, path });
+      break;
+    case 'dive':
+      submit({ type: 'Dive', unit, path });
+      break;
+    case 'surface':
+      submit({ type: 'Surface', unit, path });
       break;
     case 'join':
       submit({ type: 'Join', unit, path });

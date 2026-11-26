@@ -264,6 +264,10 @@ button.primary {
   animation: banner 1.6s ease-out forwards;
 }
 
+.banner-loss {
+  color: var(--danger);
+}
+
 @keyframes banner {
   0% {
     opacity: 0;

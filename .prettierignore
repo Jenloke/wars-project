@@ -1,6 +1,7 @@
-# Generated files
+# Generated files, and saves kept byte for byte as an old build wrote them
 pnpm-lock.yaml
 **/dist/
+packages/*/test/fixtures/
 
 # The project brief, kept exactly as written
 docs/SPEC.md
