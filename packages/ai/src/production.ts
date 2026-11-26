@@ -3,10 +3,12 @@ import {
   isIndirect,
   manhattan,
   maxRangeOf,
+  modifiersOf,
   NO_DAMAGE,
   NO_UNIT,
   weaponBaseDamage,
   type Action,
+  type PlayerIndex,
   type TileIndex,
 } from '@tactics/engine';
 import { unitValue, type Board } from './board';
@@ -16,6 +18,7 @@ import type { Plan } from './plan';
 /** One enemy unit (or, before any exist, one expected kind) to build against. */
 interface Opponent {
   readonly type: number;
+  readonly owner: PlayerIndex;
   readonly ammo: number;
   /** Funds value of the unit. */
   readonly worth: number;
@@ -49,17 +52,20 @@ function opposition(board: Board): Opponent[] {
   if (board.enemies.length > 0) {
     return board.enemies.map((enemy) => ({
       type: enemy.type,
+      owner: enemy.owner,
       ammo: enemy.ammo,
       worth: unitValue(ruleset, state, enemy),
       weight: enemy.hp / maxHp,
     }));
   }
   const expected: Opponent[] = [];
+  const rival = state.players.findIndex((player, i) => i !== board.me && player.alive);
   for (const unitType of buildableOnMap(board)) {
     const def = ruleset.units[unitType]!;
     if (def.maxRange === 0) continue;
     expected.push({
       type: unitType,
+      owner: rival,
       ammo: def.maxAmmo,
       worth: def.cost,
       weight: 1 / Math.max(1, def.cost),
@@ -68,9 +74,20 @@ function opposition(board: Board): Opponent[] {
   return expected;
 }
 
-/** Base damage as a share of a full-HP unit, 0..1. */
-function share(base: number): number {
-  return base === NO_DAMAGE || base <= 0 ? 0 : Math.min(1, base / 100);
+/**
+ * Base damage as a share of a full-HP unit, 0..1, after the attacker's
+ * firepower and the defender's defence percentages. Terrain is left out.
+ */
+function share(base: number, attack: number, defence: number): number {
+  if (base === NO_DAMAGE || base <= 0) return 0;
+  return Math.min(1, (base * attack * Math.max(0, 200 - defence)) / 1_000_000);
+}
+
+/** Share of engagements an indirect unit starts, given the range its commander adds. */
+function indirectInitiative(board: Board, owner: PlayerIndex, unitType: number): number {
+  const { ruleset, state, profile } = board;
+  const extra = maxRangeOf(ruleset, state, owner, unitType) - ruleset.units[unitType]!.maxRange;
+  return Math.min(0.9, Math.max(0.1, profile.indirectInitiative + profile.rangeInitiative * extra));
 }
 
 /**
@@ -92,17 +109,27 @@ function lifetimeValue(
   cost: number,
   army: readonly Opponent[],
 ): number | null {
-  const { ruleset, profile } = board;
+  const { ruleset, state, me } = board;
   const def = ruleset.units[unitType]!;
   const indirect = isIndirect(ruleset, unitType);
+  const mine = modifiersOf(ruleset, state, me);
   let dealtValue = 0;
   let lostShare = 0;
   let weights = 0;
   let canHurt = false;
   for (const opponent of army) {
     weights += opponent.weight;
-    const dealt = share(weaponBaseDamage(ruleset, unitType, def.maxAmmo, opponent.type));
-    const taken = share(weaponBaseDamage(ruleset, opponent.type, opponent.ammo, unitType));
+    const theirs = modifiersOf(ruleset, state, opponent.owner);
+    const dealt = share(
+      weaponBaseDamage(ruleset, unitType, def.maxAmmo, opponent.type),
+      mine.attack[unitType]!,
+      theirs.defence[opponent.type]!,
+    );
+    const taken = share(
+      weaponBaseDamage(ruleset, opponent.type, opponent.ammo, unitType),
+      theirs.attack[opponent.type]!,
+      mine.defence[unitType]!,
+    );
     if (dealt === 0 && taken === 0) continue;
     if (dealt > 0) canHurt = true;
 
@@ -112,7 +139,9 @@ function lifetimeValue(
     if (dealt === 0) initiative = 0;
     else if (taken === 0) initiative = 1;
     else if (indirect !== opponentIndirect) {
-      initiative = indirect ? profile.indirectInitiative : 1 - profile.indirectInitiative;
+      initiative = indirect
+        ? indirectInitiative(board, me, unitType)
+        : 1 - indirectInitiative(board, opponent.owner, opponent.type);
     }
     const dealtWhenStriking = dealt;
     const dealtWhenStruck = exchange ? dealt * (1 - taken) : 0;
@@ -126,7 +155,7 @@ function lifetimeValue(
       opponent.weight * (initiative * takenWhenStriking + (1 - initiative) * takenWhenStruck);
   }
   if (!canHurt || weights === 0) return null;
-  const attrition = Math.max(profile.minAttrition, lostShare / weights);
+  const attrition = Math.max(board.profile.minAttrition, lostShare / weights);
   return dealtValue / weights / attrition - cost;
 }
 

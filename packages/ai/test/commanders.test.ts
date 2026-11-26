@@ -9,7 +9,8 @@ import {
 import { describe, expect, it } from 'vitest';
 import { readBoard } from '../src/board';
 import { chooseAction } from '../src/index';
-import { propertyValue } from '../src/plan';
+import { makePlan, propertyValue } from '../src/plan';
+import { findBuild } from '../src/production';
 import { DEFAULT_PROFILE } from '../src/profile';
 import { findTactics } from '../src/tactics';
 import { at, type PlacedUnit } from './fixtures';
@@ -111,5 +112,30 @@ describe('the AI and commanders', () => {
     // A commander without a power never tries, however full the meter.
     const none = makeGame(ruleset, PLAINS, units, undefined, undefined, 50_000);
     expect(chooseAction(ruleset, none).type).not.toBe('ActivatePower');
+  });
+
+  it("values what it builds by its commander's range and firepower", () => {
+    const tankArmy: PlacedUnit[] = [
+      { x: 7, y: 0, type: 'tank', owner: 1 },
+      { x: 7, y: 1, type: 'tank', owner: 1 },
+      { x: 6, y: 1, type: 'tank', owner: 1 },
+    ];
+    const builds = (ruleset: CompiledRuleset, commander: string | undefined) => {
+      const base = makeGame(ruleset, ['R.......', '........'], tankArmy, commander, undefined);
+      const state = {
+        ...base,
+        players: base.players.map((p, i) => ({ ...p, funds: i === 0 ? 8000 : 0 })),
+      };
+      const board = readBoard(ruleset, state, DEFAULT_PROFILE);
+      const action = findBuild(board, makePlan(board));
+      if (action?.type !== 'Build') throw new Error('Expected a build');
+      return ruleset.units[action.unitType]!.id;
+    };
+    const longer = rulesWith({ modifiers: [{ hook: 'range', value: 1 }] });
+    expect(builds(longer, undefined)).toBe('mech');
+    // Artillery that outranges the tanks, or hits them harder, is worth its price.
+    expect(builds(longer, 'test')).toBe('artillery');
+    const harder = rulesWith({ modifiers: [{ hook: 'attack', units: ['indirect'], value: 30 }] });
+    expect(builds(harder, 'test')).toBe('artillery');
   });
 });
