@@ -144,6 +144,8 @@ describe('actionSchema', () => {
       { type: 'Load', unit: 1, path: [5] },
       { type: 'Unload', unit: 1, path: [5], drops: [{ cargo: 2, to: 6 }] },
       { type: 'Supply', unit: 1, path: [] },
+      { type: 'Dive', unit: 1, path: [5] },
+      { type: 'Surface', unit: 1, path: [] },
       { type: 'Build', at: 0, unitType: 3 },
       { type: 'EndTurn' },
       { type: 'Resign' },
@@ -157,6 +159,8 @@ describe('actionSchema', () => {
       { type: 'Move', unit: 1.5, path: [] },
       { type: 'Attack', unit: 1, path: [-1], target: 0 },
       { type: 'Unload', unit: 1, path: [], drops: [] },
+      { type: 'Dive', unit: 1 },
+      { type: 'Surface', path: [] },
       { type: 'Move', unit: 1, path: Array.from({ length: 65 }, (_unused, i) => i) },
     ]) {
       expect(actionSchema.safeParse(action).success).toBe(false);
