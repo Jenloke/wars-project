@@ -221,8 +221,11 @@ function tileScore(
   score -= profile.danger[orders.role] * board.caution * dangerAt(board, standing, tile, unit.hp);
   score += profile.terrainStar * terrain.defence * worth;
   if (state.owner[tile] === board.me) {
-    if (context.canBuild && terrain.builds.length > 0)
+    // A building left clear can build, unless this unit has come to it for repairs.
+    const repairsHere = orders.role === 'retreat' && terrain.repairs[def.moveType] === 1;
+    if (context.canBuild && terrain.builds.length > 0 && !repairsHere) {
       score -= profile.blockBaseDays * board.income;
+    }
     // Standing on our HQ is the surest way to stop an enemy capturing it.
     if (terrain.isHq && board.captureReach[tile] === 1) score += profile.guardHqDays * board.income;
   }

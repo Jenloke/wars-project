@@ -48,6 +48,20 @@ describe('movement', () => {
     expect(destination(state, action)).toBe(at(state, 0, 0));
   });
 
+  it('repairs on a base even when the base could build instead', () => {
+    const state = makeGame(
+      ['R...........'],
+      [
+        { x: 2, y: 0, type: 'tank', owner: 0, hp: 20 },
+        { x: 11, y: 0, type: 'infantry', owner: 1 },
+      ],
+      [7000, 0],
+    );
+    const action = chooseAction(rules, state);
+    expect(action.type).toBe('Move');
+    expect(destination(state, action)).toBe(at(state, 0, 0));
+  });
+
   it('steps off a base it is blocking so the base can build', () => {
     const state = makeGame(['R....'], [{ x: 0, y: 0, type: 'tank', owner: 0 }], [7000, 0]);
     const move = chooseAction(rules, state);
