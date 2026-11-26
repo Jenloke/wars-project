@@ -115,6 +115,73 @@ describe('ruleset', () => {
     }
   });
 
+  it('keeps every land matchup of core-1 at the value it shipped with', () => {
+    // A save names its ruleset and is verified by replaying its log, so changing a
+    // matchup without a new ruleset id would make older saves fail to load.
+    expect(ruleset.id).toBe('core-1');
+    const land = [
+      'infantry',
+      'mech',
+      'recon',
+      'tank',
+      'mediumTank',
+      'apc',
+      'artillery',
+      'rockets',
+      'antiAir',
+      'missiles',
+    ];
+    const _ = null;
+    // prettier-ignore
+    const primary: Readonly<Record<string, readonly (number | null)[]>> = {
+      //            inf  mech recon tank  med  apc  art  rock  aa   miss
+      mech:        [  _,   _,  78,  48,  18,  68,  62,  76,  58,  76],
+      tank:        [  _,   _,  82,  52,  14,  72,  68,  82,  62,  82],
+      mediumTank:  [  _,   _, 100,  80,  50, 100, 100, 100, 100, 100],
+      artillery:   [ 88,  82,  78,  68,  42,  68,  72,  78,  72,  78],
+      rockets:     [ 92,  88,  88,  78,  52,  78,  78,  82,  82,  88],
+      antiAir:     [100, 100,  58,  22,   8,  48,  48,  52,  42,  52],
+    };
+    // prettier-ignore
+    const secondary: Readonly<Record<string, readonly (number | null)[]>> = {
+      //            inf  mech recon tank  med  apc  art  rock  aa   miss
+      infantry:    [ 50,  40,  10,   4,   1,  12,  14,  22,   4,  22],
+      mech:        [ 60,  50,  16,   5,   1,  18,  28,  32,   5,  32],
+      recon:       [ 68,  58,  32,   5,   1,  42,  42,  52,   4,  26],
+      tank:        [ 72,  66,  38,   5,   1,  42,  42,  52,   5,  28],
+      mediumTank:  [100,  90,  42,   7,   1,  42,  42,  52,   6,  32],
+    };
+    const value = (table: Int16Array, attacker: string, defender: string) => {
+      const index =
+        compiled.unitIndex.get(attacker)! * compiled.unitCount + compiled.unitIndex.get(defender)!;
+      return table[index] === NO_DAMAGE ? null : table[index];
+    };
+    for (const attacker of land) {
+      land.forEach((defender, column) => {
+        expect(
+          value(compiled.primaryDamage, attacker, defender),
+          `${attacker} shells ${defender}`,
+        ).toBe(primary[attacker]?.[column] ?? null);
+        expect(
+          value(compiled.secondaryDamage, attacker, defender),
+          `${attacker} guns ${defender}`,
+        ).toBe(secondary[attacker]?.[column] ?? null);
+      });
+    }
+  });
+
+  it('flies aircraft over anything, slows ships on reefs and lets only landers beach', () => {
+    const terrain = (id: string) => ruleset.terrain.find((entry) => entry.id === id)!;
+    for (const entry of ruleset.terrain) expect(entry.moveCosts['air'], entry.id).toBe(1);
+    expect(terrain('reef')).toMatchObject({ defence: 1, moveCosts: { sea: 2, lander: 2, air: 1 } });
+    expect(Object.keys(terrain('reef').moveCosts).sort()).toEqual(['air', 'lander', 'sea']);
+    expect(terrain('shoal').moveCosts).toMatchObject({ foot: 1, tread: 1, tire: 1, lander: 1 });
+    expect(terrain('shoal').moveCosts['sea']).toBeUndefined();
+    expect(terrain('port').moveCosts).toMatchObject({ foot: 1, tread: 1, sea: 1, lander: 1 });
+    expect(terrain('airport').moveCosts['sea']).toBeUndefined();
+    expect(terrain('sea').moveCosts['foot']).toBeUndefined();
+  });
+
   it('draws terrain and units by convention unless a visual says otherwise', () => {
     expect(terrainVisual('forest', false)).toEqual({
       sprite: 'terrain.forest',
