@@ -513,6 +513,174 @@ button.primary {
   outline-offset: -4px;
 }
 
+/* Commander portraits are pixel art: keep their hard edges at any size. */
+.portrait {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 6px;
+  image-rendering: pixelated;
+}
+
+/* Commander selection, inside the new game dialog. */
+.new-game-dialog {
+  width: min(760px, calc(100vw - 32px));
+}
+
+.seat.editing {
+  background: var(--panel);
+}
+
+.seat-commander {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 2px 6px 2px 2px;
+  text-align: left;
+  background: transparent;
+  border-color: transparent;
+}
+
+.seat-commander[aria-pressed='true'] {
+  border-color: var(--border);
+}
+
+.seat-names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.seat-names > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roster {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.roster-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.roster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.roster-choice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px;
+  border-width: 2px;
+}
+
+.roster-choice[aria-checked='true'] {
+  background: var(--panel);
+}
+
+.roster-choice .badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--panel);
+}
+
+.roster-name {
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.commander-details {
+  padding: 12px 14px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 10px;
+}
+
+.commander-details header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.commander-details header p,
+.commander-bio {
+  margin: 2px 0 0;
+}
+
+.commander-bio {
+  margin-top: 8px;
+}
+
+.commander-abilities {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 4px 18px;
+  margin-top: 8px;
+}
+
+.commander-abilities h4 {
+  margin: 6px 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.commander-abilities h4 .muted {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.commander-abilities ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.commander-abilities p {
+  margin: 0;
+}
+
+.charge-list {
+  list-style: none;
+  padding-left: 0 !important;
+}
+
+.charge-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.charge-list .pace-none {
+  color: var(--muted);
+}
+
+.pace {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.pace-pip {
+  width: 14px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 2px;
+}
+
 .badge {
   padding: 1px 7px;
   font-size: 11px;
