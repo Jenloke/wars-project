@@ -8,6 +8,7 @@ import {
 } from '@tactics/engine';
 import { describe, expect, it } from 'vitest';
 import { readBoard } from '../src/board';
+import { chooseAction } from '../src/index';
 import { propertyValue } from '../src/plan';
 import { DEFAULT_PROFILE } from '../src/profile';
 import { findTactics } from '../src/tactics';
@@ -92,5 +93,23 @@ describe('the AI and commanders', () => {
     const quick = captureAt(ruleset, 'test');
     expect(quick.tactic.score).toBe(quick.full);
     expect(captureAt(ruleset, undefined).tactic.score).toBeLessThan(quick.full);
+  });
+
+  it('activates its power as soon as the meter is full, and not before', () => {
+    const ruleset = rulesWith({
+      modifiers: [],
+      power: { name: 'Volley', cost: 1000, modifiers: [{ hook: 'attack', value: 30 }] },
+    });
+    const units: PlacedUnit[] = [
+      { x: 0, y: 0, type: 'tank', owner: 0 },
+      { x: 8, y: 1, type: 'tank', owner: 1 },
+    ];
+    const ready = makeGame(ruleset, PLAINS, units, 'test', undefined, 1000);
+    expect(chooseAction(ruleset, ready)).toEqual({ type: 'ActivatePower' });
+    const short = makeGame(ruleset, PLAINS, units, 'test', undefined, 999);
+    expect(chooseAction(ruleset, short).type).not.toBe('ActivatePower');
+    // A commander without a power never tries, however full the meter.
+    const none = makeGame(ruleset, PLAINS, units, undefined, undefined, 50_000);
+    expect(chooseAction(ruleset, none).type).not.toBe('ActivatePower');
   });
 });
