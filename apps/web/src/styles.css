@@ -257,6 +257,39 @@ button.primary {
   border-color: var(--danger);
 }
 
+.armies-card ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.army {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.75;
+}
+
+.army.active {
+  opacity: 1;
+}
+
+.army-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.army-text .army-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .menu {
   position: absolute;
   z-index: 2;
