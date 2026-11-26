@@ -1,11 +1,13 @@
 import { canCounter, damageBetween, usesPrimaryWeapon } from '../combat';
-import { destroyUnit, patchPlayer, patchUnit, relocateUnit, type Draft } from '../draft';
+import { commanderOf } from '../commanders';
+import { destroyUnit, patchUnit, relocateUnit, type Draft } from '../draft';
 import { manhattan } from '../grid';
 import { NO_DAMAGE, type CompiledRuleset } from '../ruleset';
 import { rngAdvance, rngInt } from '../rng';
 import { NO_UNIT, type Action, type TileIndex, type Unit } from '../types';
 import { isIndirect, maxRangeOf, unitCost } from '../units';
 import { beginUnitAction, type ActionError } from './common';
+import { chargeMeter, chargeShare } from './power';
 
 function rollLuck(ruleset: CompiledRuleset, draft: Draft): number {
   const seed = rngAdvance(draft.state.rng);
@@ -14,8 +16,8 @@ function rollLuck(ruleset: CompiledRuleset, draft: Draft): number {
 }
 
 /**
- * Charges both power meters from the funds value of the damage dealt: the side
- * hit gains the full value, the side firing half of it.
+ * Charges both power meters from the funds value of the damage dealt, at each
+ * commander's rates, and the attacker's for a kill on top.
  */
 function chargePower(
   ruleset: CompiledRuleset,
@@ -23,16 +25,16 @@ function chargePower(
   attacker: Unit,
   defender: Unit,
   damage: number,
+  destroyed: boolean,
 ): void {
   const state = draft.state;
-  const value = Math.floor(
-    (unitCost(ruleset, state, defender.owner, defender.type) * damage) / ruleset.rules.maxHp,
-  );
-  if (value === 0) return;
-  patchPlayer(draft, defender.owner, { power: state.players[defender.owner]!.power + value });
-  patchPlayer(draft, attacker.owner, {
-    power: state.players[attacker.owner]!.power + Math.floor(value / 2),
-  });
+  const cost = unitCost(ruleset, state, defender.owner, defender.type);
+  const value = Math.floor((cost * damage) / ruleset.rules.maxHp);
+  const taken = commanderOf(ruleset, state, defender.owner).charge;
+  const dealt = commanderOf(ruleset, state, attacker.owner).charge;
+  chargeMeter(ruleset, draft, defender.owner, chargeShare(value, taken.damageTaken));
+  chargeMeter(ruleset, draft, attacker.owner, chargeShare(value, dealt.damageDealt));
+  if (destroyed) chargeMeter(ruleset, draft, attacker.owner, chargeShare(cost, dealt.kills));
 }
 
 /**
@@ -73,9 +75,9 @@ function strike(
     damage,
     isCounter,
   });
-  chargePower(ruleset, draft, attacker, defender, damage);
-
   const remaining = defender.hp - damage;
+  chargePower(ruleset, draft, attacker, defender, damage, remaining <= 0);
+
   if (remaining <= 0) {
     destroyUnit(ruleset, draft, defender.id, 'combat');
     return 0;

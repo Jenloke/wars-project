@@ -5,6 +5,31 @@ import type { PlayerIndex } from '../types';
 import { incomeOf } from '../units';
 import type { ActionError } from './common';
 
+/**
+ * Adds `points` to `player`'s power meter. Nothing charges while their power is
+ * active, and the meter holds no more than the power costs. (A commander with
+ * no power keeps counting, as every meter did before powers existed.)
+ */
+export function chargeMeter(
+  ruleset: CompiledRuleset,
+  draft: Draft,
+  player: PlayerIndex,
+  points: number,
+): void {
+  if (points <= 0) return;
+  const side = draft.state.players[player]!;
+  if (side.powerActive) return;
+  const power = ruleset.commanders[side.commander]!.power;
+  let meter = side.power + points;
+  if (power !== null && meter > power.cost) meter = power.cost;
+  if (meter !== side.power) patchPlayer(draft, player, { power: meter });
+}
+
+/** Meter points `player` earns from `percent` percent of `value`. */
+export function chargeShare(value: number, percent: number): number {
+  return Math.floor((value * percent) / 100);
+}
+
 function applyEffect(
   ruleset: CompiledRuleset,
   draft: Draft,

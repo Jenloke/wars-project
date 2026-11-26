@@ -8,11 +8,12 @@ import {
   unitIdsOf,
   type Draft,
 } from '../draft';
-import { modifiersOf } from '../commanders';
+import { commanderOf, modifiersOf } from '../commanders';
 import type { CompiledRuleset } from '../ruleset';
 import { NO_OWNER, NO_TILE, type PlayerIndex, type TileIndex, type UnitId } from '../types';
 import { incomeOf, unitCost } from '../units';
 import type { ActionError } from './common';
+import { chargeMeter, chargeShare } from './power';
 
 /**
  * Heals a unit standing on a repairing property, as far as funds allow. The
@@ -83,9 +84,10 @@ function startTurn(ruleset: CompiledRuleset, draft: Draft, player: PlayerIndex):
   const state = draft.state;
 
   if (state.players[player]!.powerActive) patchPlayer(draft, player, { powerActive: false });
-  patchPlayer(draft, player, {
-    funds: state.players[player]!.funds + incomeOf(ruleset, state, player),
-  });
+  const income = incomeOf(ruleset, state, player);
+  patchPlayer(draft, player, { funds: state.players[player]!.funds + income });
+  const charge = commanderOf(ruleset, state, player).charge;
+  chargeMeter(ruleset, draft, player, chargeShare(income, charge.income));
 
   const ids = unitIdsOf(draft, player);
   burnFuel(ruleset, draft, ids);

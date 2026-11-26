@@ -138,11 +138,42 @@ export interface RawPower {
   readonly effects?: readonly RawPowerEffect[] | undefined;
 }
 
+/**
+ * How fast a commander's power meter fills, in meter points. The funds value of
+ * damage is the damaged unit's cost times the share of its HP lost.
+ */
+export interface RawCharge {
+  /** Percent of the funds value of damage this player's units deal. */
+  readonly damageDealt: number;
+  /** Percent of the funds value of damage this player's units take. */
+  readonly damageTaken: number;
+  /** Percent of the cost of each enemy unit this player's units destroy, on top of the damage. */
+  readonly kills: number;
+  /** Points for each property this player captures. */
+  readonly captures: number;
+  /** Percent of the funds this player collects at the start of each turn. */
+  readonly income: number;
+}
+
+/**
+ * Charge rates for a commander that names none: the meter rule of the first
+ * builds, so games saved before commanders had their own rates replay the same.
+ */
+export const DEFAULT_CHARGE: RawCharge = {
+  damageDealt: 50,
+  damageTaken: 100,
+  kills: 0,
+  captures: 0,
+  income: 0,
+};
+
 export interface RawCommanderDef {
   readonly id: string;
   readonly name: string;
   /** Innate modifiers, always in effect. */
   readonly modifiers: readonly RawModifier[];
+  /** How the meter fills. Defaults to `DEFAULT_CHARGE`. */
+  readonly charge?: RawCharge | undefined;
   /** Commanders without a power have nothing to activate. */
   readonly power?: RawPower | undefined;
 }
@@ -251,6 +282,7 @@ export interface CompiledCommander {
   readonly passive: CompiledModifiers;
   /** Innate and power modifiers together, while the power is active. */
   readonly powered: CompiledModifiers;
+  readonly charge: RawCharge;
   readonly power: CompiledPower | null;
 }
 
@@ -416,12 +448,16 @@ function compilePower(raw: RawPower, units: readonly RawUnitDef[], context: stri
 function compileCommander(raw: RawCommanderDef, units: readonly RawUnitDef[]): CompiledCommander {
   const context = `Commander "${raw.id}"`;
   const passive = applyModifiers(units, neutralModifiers(units.length), raw.modifiers, context);
+  const charge = raw.charge ?? DEFAULT_CHARGE;
+  for (const [source, rate] of Object.entries(charge)) {
+    if (!(rate >= 0)) throw new Error(`${context}: charge rate "${source}" must not be negative`);
+  }
   if (raw.power === undefined) {
-    return { id: raw.id, name: raw.name, passive, powered: passive, power: null };
+    return { id: raw.id, name: raw.name, passive, powered: passive, charge, power: null };
   }
   const powered = applyModifiers(units, passive, raw.power.modifiers, `${context} power`);
   const power = compilePower(raw.power, units, `${context} power`);
-  return { id: raw.id, name: raw.name, passive, powered, power };
+  return { id: raw.id, name: raw.name, passive, powered, charge, power };
 }
 
 /** Interns a raw ruleset into lookup tables. Throws on any dangling reference. */
