@@ -53,6 +53,16 @@ describe('GameSession with computer players', () => {
     ]);
   });
 
+  it('starts each side under the commander chosen for it', () => {
+    const game = newGameRecord(ruleset, twinFords, 1, ['local', 'ai'], ['orla', 'pip']);
+    expect(game.setup.players).toEqual([
+      { controller: 'local', commander: 'orla' },
+      { controller: 'ai', commander: 'pip' },
+    ]);
+    const names = game.state.players.map((player) => ruleset.commanders[player.commander]!.name);
+    expect(names).toEqual(['Orla Teague', 'Pip Harrow']);
+  });
+
   it('plays the computer turn after the local player ends theirs', async () => {
     const session = startSession(['local', 'ai']);
     running.push(session);

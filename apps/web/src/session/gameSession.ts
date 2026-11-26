@@ -11,6 +11,7 @@ import {
   type MapData,
   type PlayerController,
   type PlayerIndex,
+  type PlayerSetup,
   type RestoredGame,
   type SaveData,
 } from '@tactics/engine';
@@ -37,16 +38,23 @@ export const defaultControllers: ControllerFactory = (kind) =>
 /**
  * A fresh game on `map`, ready to hand to `GameSession`. `seats` says who plays
  * each player slot; slots it does not cover are played on this device.
+ * `commanders` names each slot's commander by ID; slots it does not cover get
+ * the ruleset's default commander.
  */
 export function newGameRecord(
   ruleset: CompiledRuleset,
   map: MapData,
   seed: number,
   seats: readonly ControllerKind[] = [],
+  commanders: readonly string[] = [],
 ): RestoredGame {
   const setup: GameSetup = {
     seed: seed >>> 0,
-    players: map.players.map((_slot, i) => ({ controller: seats[i] ?? 'local' })),
+    players: map.players.map((_slot, i): PlayerSetup => {
+      const controller = seats[i] ?? 'local';
+      const commander = commanders[i];
+      return commander === undefined ? { controller } : { controller, commander };
+    }),
   };
   const initial = createGame(ruleset, map, setup);
   return { map, setup, initial, actions: [], state: initial };
