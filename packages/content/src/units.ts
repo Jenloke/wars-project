@@ -1,11 +1,15 @@
 import type { RawUnitDef } from '@tactics/engine';
 
-/** Units that a base can produce, in build-menu order. */
+/**
+ * Every unit, in build-menu order within each kind. States and actions store unit
+ * types by index, so new units are only ever appended.
+ */
 export const units: readonly RawUnitDef[] = [
   {
     id: 'infantry',
     name: 'Infantry',
     moveType: 'foot',
+    tags: ['ground', 'infantry'],
     movePoints: 3,
     cost: 1000,
     maxFuel: 90,
@@ -19,6 +23,7 @@ export const units: readonly RawUnitDef[] = [
     id: 'mech',
     name: 'Mech',
     moveType: 'mech',
+    tags: ['ground', 'infantry'],
     movePoints: 2,
     cost: 2500,
     maxFuel: 60,
@@ -32,6 +37,7 @@ export const units: readonly RawUnitDef[] = [
     id: 'recon',
     name: 'Recon',
     moveType: 'tire',
+    tags: ['ground', 'vehicle'],
     movePoints: 7,
     cost: 4000,
     maxFuel: 80,
@@ -45,6 +51,7 @@ export const units: readonly RawUnitDef[] = [
     id: 'apc',
     name: 'APC',
     moveType: 'tread',
+    tags: ['ground', 'vehicle'],
     movePoints: 6,
     cost: 4500,
     maxFuel: 70,
@@ -53,12 +60,13 @@ export const units: readonly RawUnitDef[] = [
     maxRange: 0,
     canCapture: false,
     canSupply: true,
-    transport: { capacity: 1, carries: ['foot', 'mech'] },
+    transport: { capacity: 1, carries: ['infantry'] },
   },
   {
     id: 'artillery',
     name: 'Artillery',
     moveType: 'tread',
+    tags: ['ground', 'vehicle'],
     movePoints: 5,
     cost: 6000,
     maxFuel: 50,
@@ -72,6 +80,7 @@ export const units: readonly RawUnitDef[] = [
     id: 'tank',
     name: 'Tank',
     moveType: 'tread',
+    tags: ['ground', 'vehicle'],
     movePoints: 6,
     cost: 6500,
     maxFuel: 70,
@@ -85,6 +94,7 @@ export const units: readonly RawUnitDef[] = [
     id: 'antiAir',
     name: 'Anti-Air',
     moveType: 'tread',
+    tags: ['ground', 'vehicle'],
     movePoints: 6,
     cost: 7500,
     maxFuel: 60,
@@ -98,6 +108,7 @@ export const units: readonly RawUnitDef[] = [
     id: 'missiles',
     name: 'Missiles',
     moveType: 'tire',
+    tags: ['ground', 'vehicle'],
     movePoints: 4,
     cost: 11000,
     maxFuel: 50,
@@ -111,6 +122,7 @@ export const units: readonly RawUnitDef[] = [
     id: 'rockets',
     name: 'Rockets',
     moveType: 'tire',
+    tags: ['ground', 'vehicle'],
     movePoints: 4,
     cost: 13000,
     maxFuel: 50,
@@ -124,6 +136,7 @@ export const units: readonly RawUnitDef[] = [
     id: 'mediumTank',
     name: 'Medium Tank',
     moveType: 'tread',
+    tags: ['ground', 'vehicle'],
     movePoints: 5,
     cost: 14000,
     maxFuel: 50,
@@ -133,6 +146,82 @@ export const units: readonly RawUnitDef[] = [
     canCapture: false,
     canSupply: false,
   },
+  {
+    // Carries two ground units; they can only board or land from a shoal or port.
+    id: 'lander',
+    name: 'Lander',
+    moveType: 'lander',
+    tags: ['naval'],
+    movePoints: 6,
+    cost: 12000,
+    maxFuel: 99,
+    fuelPerDay: 1,
+    lostWithoutFuel: true,
+    maxAmmo: 0,
+    minRange: 0,
+    maxRange: 0,
+    canCapture: false,
+    canSupply: false,
+    transport: { capacity: 2, carries: ['ground'] },
+  },
+  {
+    // Hunts submarines with torpedoes and guards the fleet from the air.
+    id: 'cruiser',
+    name: 'Cruiser',
+    moveType: 'sea',
+    tags: ['naval'],
+    movePoints: 6,
+    cost: 18000,
+    maxFuel: 99,
+    fuelPerDay: 1,
+    lostWithoutFuel: true,
+    maxAmmo: 9,
+    minRange: 1,
+    maxRange: 1,
+    canCapture: false,
+    canSupply: false,
+  },
+  {
+    // Dives out of reach of everything but cruisers and other submarines.
+    id: 'submarine',
+    name: 'Submarine',
+    moveType: 'sea',
+    tags: ['naval'],
+    movePoints: 5,
+    cost: 20000,
+    maxFuel: 60,
+    fuelPerDay: 1,
+    lostWithoutFuel: true,
+    dive: { fuelPerDay: 5, attackableBy: ['cruiser', 'submarine'] },
+    maxAmmo: 6,
+    minRange: 1,
+    maxRange: 1,
+    canCapture: false,
+    canSupply: false,
+  },
+  {
+    // Long-range guns that can shell the coast, but cannot move and fire.
+    id: 'battleship',
+    name: 'Battleship',
+    moveType: 'sea',
+    tags: ['naval'],
+    movePoints: 5,
+    cost: 28000,
+    maxFuel: 99,
+    fuelPerDay: 1,
+    lostWithoutFuel: true,
+    maxAmmo: 9,
+    minRange: 2,
+    maxRange: 6,
+    canCapture: false,
+    canSupply: false,
+  },
 ];
 
-export const LAND_UNIT_IDS: readonly string[] = units.map((unit) => unit.id);
+/** IDs of the units tagged `tag`, in build-menu order. */
+export function unitIdsTagged(tag: string): string[] {
+  return units.filter((unit) => unit.tags?.includes(tag) === true).map((unit) => unit.id);
+}
+
+export const LAND_UNIT_IDS: readonly string[] = unitIdsTagged('ground');
+export const NAVAL_UNIT_IDS: readonly string[] = unitIdsTagged('naval');

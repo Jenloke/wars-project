@@ -16,22 +16,52 @@ const compiled = compileRuleset(ruleset);
 
 describe('ruleset', () => {
   it('compiles without dangling references', () => {
-    expect(compiled.unitCount).toBe(10);
+    expect(compiled.unitCount).toBe(14);
     expect(compiled.moveTypes).toEqual(['foot', 'mech', 'tread', 'tire', 'air', 'sea', 'lander']);
   });
 
-  it('gives every armed land unit a target, except anti-air-only missiles', () => {
-    for (let attacker = 0; attacker < compiled.unitCount; attacker++) {
-      const unit = compiled.units[attacker]!;
-      let targets = 0;
-      for (let defender = 0; defender < compiled.unitCount; defender++) {
-        const cell = attacker * compiled.unitCount + defender;
-        if (compiled.primaryDamage[cell] !== NO_DAMAGE) targets++;
-        else if (compiled.secondaryDamage[cell] !== NO_DAMAGE) targets++;
-      }
-      if (unit.maxRange === 0 || unit.id === 'missiles') expect(targets).toBe(0);
-      else expect(targets).toBe(compiled.unitCount);
+  const canHit = (attacker: number, defender: number) => {
+    const cell = attacker * compiled.unitCount + defender;
+    return (
+      compiled.primaryDamage[cell] !== NO_DAMAGE || compiled.secondaryDamage[cell] !== NO_DAMAGE
+    );
+  };
+  const unitsTagged = (tag: string) =>
+    compiled.units.flatMap((unit, type) => (unit.tags.includes(tag) ? [type] : []));
+
+  it('gives every armed unit a target, and leaves no unit invulnerable', () => {
+    const types = compiled.units.map((_unit, type) => type);
+    for (const attacker of types) {
+      // Missiles only hit aircraft, which this ruleset does not have yet.
+      if (compiled.units[attacker]!.id === 'missiles') continue;
+      const armed = compiled.units[attacker]!.maxRange > 0;
+      expect(types.some((defender) => canHit(attacker, defender))).toBe(armed);
+      expect(types.some((other) => canHit(other, attacker))).toBe(true);
     }
+  });
+
+  it('lets every armed ground unit except missiles hit every other ground unit', () => {
+    const ground = unitsTagged('ground');
+    for (const attacker of ground) {
+      const unit = compiled.units[attacker]!;
+      if (unit.maxRange === 0 || unit.id === 'missiles') continue;
+      for (const defender of ground) expect(canHit(attacker, defender)).toBe(true);
+    }
+  });
+
+  it('builds ground units at bases and ships at ports', () => {
+    const builds = (terrain: string) =>
+      compiled.terrain[compiled.terrainIndex.get(terrain)!]!.builds.map(
+        (type) => compiled.units[type]!.id,
+      );
+    expect(builds('base')).toHaveLength(10);
+    expect(builds('port')).toEqual(['lander', 'cruiser', 'submarine', 'battleship']);
+  });
+
+  it('lets only cruisers and submarines reach a dived submarine', () => {
+    const sub = compiled.units[compiled.unitIndex.get('submarine')!]!;
+    const hunters = compiled.units.filter((_unit, type) => sub.divedAttackers[type] === 1);
+    expect(hunters.map((unit) => unit.id)).toEqual(['cruiser', 'submarine']);
   });
 
   it('only lets a property build units that can stand on it', () => {

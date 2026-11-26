@@ -18,25 +18,41 @@ const PRIMARY: DamageTable = {
   },
   tank: {
     recon: 82, tank: 52, mediumTank: 14, apc: 72, artillery: 68, rockets: 82, antiAir: 62, missiles: 82,
+    lander: 12, cruiser: 6, submarine: 4, battleship: 2,
   },
   mediumTank: {
     recon: 100, tank: 80, mediumTank: 50, apc: 100, artillery: 100, rockets: 100, antiAir: 100, missiles: 100,
+    lander: 36, cruiser: 32, submarine: 30, battleship: 12,
   },
   artillery: {
     infantry: 88, mech: 82, recon: 78, tank: 68, mediumTank: 42, apc: 68, artillery: 72, rockets: 78,
     antiAir: 72, missiles: 78,
+    lander: 52, cruiser: 58, submarine: 56, battleship: 38,
   },
   rockets: {
     infantry: 92, mech: 88, recon: 88, tank: 78, mediumTank: 52, apc: 78, artillery: 78, rockets: 82,
     antiAir: 82, missiles: 88,
+    lander: 62, cruiser: 78, submarine: 78, battleship: 52,
   },
   antiAir: {
     infantry: 100, mech: 100, recon: 58, tank: 22, mediumTank: 8, apc: 48, artillery: 48, rockets: 52,
     antiAir: 42, missiles: 52,
   },
+  // Torpedoes. The cruiser's anti-air guns are its secondary weapon.
+  cruiser: {
+    lander: 28, cruiser: 28, submarine: 88, battleship: 6,
+  },
+  submarine: {
+    lander: 94, cruiser: 24, submarine: 54, battleship: 58,
+  },
+  battleship: {
+    infantry: 92, mech: 88, recon: 82, tank: 68, mediumTank: 52, apc: 82, artillery: 78, rockets: 84,
+    antiAir: 82, missiles: 86,
+    lander: 94, cruiser: 62, submarine: 64, battleship: 48,
+  },
 };
 
-/** Secondary weapons: machine guns. Never run out. */
+/** Secondary weapons: machine guns and anti-air guns. Never run out. */
 // prettier-ignore
 const SECONDARY: DamageTable = {
   infantry: {
