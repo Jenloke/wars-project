@@ -1,6 +1,6 @@
 import type { RawTerrainDef } from '@tactics/engine';
 import { AIR_MOVE_TYPES, LAND_MOVE_TYPES, NAVAL_MOVE_TYPES } from './moveTypes';
-import { LAND_UNIT_IDS, NAVAL_UNIT_IDS } from './units';
+import { AIR_UNIT_IDS, LAND_UNIT_IDS, NAVAL_UNIT_IDS } from './units';
 
 const AIR = { air: 1 };
 const NAVAL = { sea: 1, lander: 1 };
@@ -90,6 +90,6 @@ export const terrain: readonly RawTerrainDef[] = [
     name: 'Airport',
     defence: 3,
     moveCosts: PAVED,
-    property: { isHq: false, repairs: AIR_REPAIRS, builds: [] },
+    property: { isHq: false, repairs: AIR_REPAIRS, builds: AIR_UNIT_IDS },
   },
 ];

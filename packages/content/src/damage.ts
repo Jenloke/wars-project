@@ -37,6 +37,11 @@ const PRIMARY: DamageTable = {
   antiAir: {
     infantry: 100, mech: 100, recon: 58, tank: 22, mediumTank: 8, apc: 48, artillery: 48, rockets: 52,
     antiAir: 42, missiles: 52,
+    transportCopter: 118, battleCopter: 116, fighter: 64, bomber: 74,
+  },
+  // Surface-to-air missiles: deadly to aircraft, useless against anything else.
+  missiles: {
+    transportCopter: 118, battleCopter: 116, fighter: 98, bomber: 98,
   },
   // Torpedoes. The cruiser's anti-air guns are its secondary weapon.
   cruiser: {
@@ -50,6 +55,18 @@ const PRIMARY: DamageTable = {
     antiAir: 82, missiles: 86,
     lander: 94, cruiser: 62, submarine: 64, battleship: 48,
   },
+  battleCopter: {
+    recon: 54, tank: 54, mediumTank: 24, apc: 58, artillery: 64, rockets: 64, antiAir: 24, missiles: 64,
+    lander: 26, cruiser: 54, submarine: 26, battleship: 24,
+  },
+  fighter: {
+    transportCopter: 102, battleCopter: 98, fighter: 54, bomber: 96,
+  },
+  bomber: {
+    infantry: 112, mech: 108, recon: 104, tank: 104, mediumTank: 94, apc: 104, artillery: 104,
+    rockets: 104, antiAir: 94, missiles: 104,
+    lander: 94, cruiser: 84, submarine: 94, battleship: 74,
+  },
 };
 
 /** Secondary weapons: machine guns and anti-air guns. Never run out. */
@@ -58,22 +75,35 @@ const SECONDARY: DamageTable = {
   infantry: {
     infantry: 50, mech: 40, recon: 10, tank: 4, mediumTank: 1, apc: 12, artillery: 14, rockets: 22,
     antiAir: 4, missiles: 22,
+    transportCopter: 28, battleCopter: 6,
   },
   mech: {
     infantry: 60, mech: 50, recon: 16, tank: 5, mediumTank: 1, apc: 18, artillery: 28, rockets: 32,
     antiAir: 5, missiles: 32,
+    transportCopter: 32, battleCopter: 8,
   },
   recon: {
     infantry: 68, mech: 58, recon: 32, tank: 5, mediumTank: 1, apc: 42, artillery: 42, rockets: 52,
     antiAir: 4, missiles: 26,
+    transportCopter: 34, battleCopter: 10,
   },
   tank: {
     infantry: 72, mech: 66, recon: 38, tank: 5, mediumTank: 1, apc: 42, artillery: 42, rockets: 52,
     antiAir: 5, missiles: 28,
+    transportCopter: 38, battleCopter: 10,
   },
   mediumTank: {
     infantry: 100, mech: 90, recon: 42, tank: 7, mediumTank: 1, apc: 42, artillery: 42, rockets: 52,
     antiAir: 6, missiles: 32,
+    transportCopter: 42, battleCopter: 12,
+  },
+  cruiser: {
+    transportCopter: 112, battleCopter: 106, fighter: 56, bomber: 64,
+  },
+  battleCopter: {
+    infantry: 74, mech: 64, recon: 12, tank: 6, mediumTank: 2, apc: 20, artillery: 24, rockets: 34,
+    antiAir: 6, missiles: 34,
+    transportCopter: 94, battleCopter: 64,
   },
 };
 

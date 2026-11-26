@@ -165,7 +165,7 @@ export const units: readonly RawUnitDef[] = [
     transport: { capacity: 2, carries: ['ground'] },
   },
   {
-    // Hunts submarines with torpedoes and guards the fleet from the air.
+    // Hunts submarines with torpedoes, guards the fleet from aircraft and carries copters.
     id: 'cruiser',
     name: 'Cruiser',
     moveType: 'sea',
@@ -180,6 +180,7 @@ export const units: readonly RawUnitDef[] = [
     maxRange: 1,
     canCapture: false,
     canSupply: false,
+    transport: { capacity: 2, carries: ['copter'] },
   },
   {
     // Dives out of reach of everything but cruisers and other submarines.
@@ -216,6 +217,79 @@ export const units: readonly RawUnitDef[] = [
     canCapture: false,
     canSupply: false,
   },
+  {
+    // Ferries one infantry unit anywhere it can set down, over any terrain.
+    id: 'transportCopter',
+    name: 'Transport Copter',
+    moveType: 'air',
+    tags: ['air', 'copter'],
+    movePoints: 6,
+    cost: 5000,
+    maxFuel: 99,
+    fuelPerDay: 2,
+    lostWithoutFuel: true,
+    ignoresTerrainDefence: true,
+    maxAmmo: 0,
+    minRange: 0,
+    maxRange: 0,
+    canCapture: false,
+    canSupply: false,
+    transport: { capacity: 1, carries: ['infantry'] },
+  },
+  {
+    // Missiles for vehicles and ships, a machine gun for infantry and copters.
+    id: 'battleCopter',
+    name: 'Battle Copter',
+    moveType: 'air',
+    tags: ['air', 'copter'],
+    movePoints: 6,
+    cost: 9000,
+    maxFuel: 99,
+    fuelPerDay: 2,
+    lostWithoutFuel: true,
+    ignoresTerrainDefence: true,
+    maxAmmo: 6,
+    minRange: 1,
+    maxRange: 1,
+    canCapture: false,
+    canSupply: false,
+  },
+  {
+    // Rules the air and can hit nothing else.
+    id: 'fighter',
+    name: 'Fighter',
+    moveType: 'air',
+    tags: ['air', 'plane'],
+    movePoints: 9,
+    cost: 20000,
+    maxFuel: 99,
+    fuelPerDay: 5,
+    lostWithoutFuel: true,
+    ignoresTerrainDefence: true,
+    maxAmmo: 9,
+    minRange: 1,
+    maxRange: 1,
+    canCapture: false,
+    canSupply: false,
+  },
+  {
+    // Flattens anything on the ground or the sea, defenceless against aircraft.
+    id: 'bomber',
+    name: 'Bomber',
+    moveType: 'air',
+    tags: ['air', 'plane'],
+    movePoints: 7,
+    cost: 22000,
+    maxFuel: 99,
+    fuelPerDay: 5,
+    lostWithoutFuel: true,
+    ignoresTerrainDefence: true,
+    maxAmmo: 9,
+    minRange: 1,
+    maxRange: 1,
+    canCapture: false,
+    canSupply: false,
+  },
 ];
 
 /** IDs of the units tagged `tag`, in build-menu order. */
@@ -225,3 +299,4 @@ export function unitIdsTagged(tag: string): string[] {
 
 export const LAND_UNIT_IDS: readonly string[] = unitIdsTagged('ground');
 export const NAVAL_UNIT_IDS: readonly string[] = unitIdsTagged('naval');
+export const AIR_UNIT_IDS: readonly string[] = unitIdsTagged('air');

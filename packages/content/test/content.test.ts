@@ -16,7 +16,7 @@ const compiled = compileRuleset(ruleset);
 
 describe('ruleset', () => {
   it('compiles without dangling references', () => {
-    expect(compiled.unitCount).toBe(14);
+    expect(compiled.unitCount).toBe(18);
     expect(compiled.moveTypes).toEqual(['foot', 'mech', 'tread', 'tire', 'air', 'sea', 'lander']);
   });
 
@@ -32,8 +32,6 @@ describe('ruleset', () => {
   it('gives every armed unit a target, and leaves no unit invulnerable', () => {
     const types = compiled.units.map((_unit, type) => type);
     for (const attacker of types) {
-      // Missiles only hit aircraft, which this ruleset does not have yet.
-      if (compiled.units[attacker]!.id === 'missiles') continue;
       const armed = compiled.units[attacker]!.maxRange > 0;
       expect(types.some((defender) => canHit(attacker, defender))).toBe(armed);
       expect(types.some((other) => canHit(other, attacker))).toBe(true);
@@ -49,13 +47,33 @@ describe('ruleset', () => {
     }
   });
 
-  it('builds ground units at bases and ships at ports', () => {
+  it('builds ground units at bases, ships at ports and aircraft at airports', () => {
     const builds = (terrain: string) =>
       compiled.terrain[compiled.terrainIndex.get(terrain)!]!.builds.map(
         (type) => compiled.units[type]!.id,
       );
     expect(builds('base')).toHaveLength(10);
     expect(builds('port')).toEqual(['lander', 'cruiser', 'submarine', 'battleship']);
+    expect(builds('airport')).toEqual(['transportCopter', 'battleCopter', 'fighter', 'bomber']);
+  });
+
+  it('lets cruisers carry copters but not planes, and landers carry any ground unit', () => {
+    const carried = (transport: string) => {
+      const def = compiled.units[compiled.unitIndex.get(transport)!]!;
+      return compiled.units.filter((_unit, type) => def.carries[type] === 1).map((unit) => unit.id);
+    };
+    expect(carried('cruiser')).toEqual(['transportCopter', 'battleCopter']);
+    expect(carried('lander')).toHaveLength(10);
+    expect(carried('transportCopter')).toEqual(['infantry', 'mech']);
+  });
+
+  it('gives aircraft no terrain cover and makes every aircraft burn fuel', () => {
+    for (const type of unitsTagged('air')) {
+      const unit = compiled.units[type]!;
+      expect(unit.ignoresTerrainDefence).toBe(true);
+      expect(unit.fuelPerDay).toBeGreaterThan(0);
+      expect(unit.lostWithoutFuel).toBe(true);
+    }
   });
 
   it('lets only cruisers and submarines reach a dived submarine', () => {
