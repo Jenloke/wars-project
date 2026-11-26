@@ -127,6 +127,31 @@ describe('direct combat', () => {
     );
   });
 
+  it('reports a unit destroyed in combat as a combat loss', () => {
+    const state = makeGame(
+      ['====='],
+      [
+        { x: 0, y: 0, type: 'tank', owner: 0 },
+        { x: 1, y: 0, type: 'infantry', owner: 1, hp: 10 },
+        { x: 4, y: 0, type: 'infantry', owner: 1 },
+      ],
+    );
+    const defender = unitAt(state, 1, 0).id;
+    const result = apply(state, {
+      type: 'Attack',
+      unit: unitAt(state, 0, 0).id,
+      path: [],
+      target: 1,
+    });
+    expect(result.state.units[defender]).toBeUndefined();
+    expect(result.events).toContainEqual({
+      type: 'UnitDestroyed',
+      unit: defender,
+      at: 1,
+      cause: 'combat',
+    });
+  });
+
   it('rejects bad targets', () => {
     const state = makeGame(
       ['====='],

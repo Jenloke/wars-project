@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Action, GameState } from '../src/index';
+import { compileRuleset, type Action, type GameState } from '../src/index';
 import { apply, at, makeGame, unitAt, withUnit, type PlacedUnit } from './fixtures';
-import { navalRules } from './navalFixtures';
+import { navalRules, navalRuleset } from './navalFixtures';
 
 function game(rows: readonly string[], units: readonly PlacedUnit[]): GameState {
   return makeGame(rows, units, 1, navalRules);
@@ -105,6 +105,34 @@ describe('running out of fuel', () => {
     state = fullRound(state).state;
     expect(state.units[fighter]!.fuel).toBe(40);
     expect(state.units[copter]!.fuel).toBe(30);
+  });
+
+  it('strands a unit that burns fuel daily but is not lost on an empty tank', () => {
+    const units = navalRuleset.units.map((unit) =>
+      unit.id === 'copter' ? { ...unit, lostWithoutFuel: false } : unit,
+    );
+    const hovering = compileRuleset({ ...navalRuleset, units });
+    const base = makeGame(
+      ['....'],
+      [
+        { x: 0, y: 0, type: 'copter', owner: 0 },
+        { x: 3, y: 0, type: 'infantry', owner: 1 },
+      ],
+      1,
+      hovering,
+    );
+    const copter = unitAt(base, 0, 0).id;
+    const round = (state: GameState) => {
+      const ended = apply(state, { type: 'EndTurn' }, hovering).state;
+      return apply(ended, { type: 'EndTurn' }, hovering);
+    };
+    const first = round(withUnit(base, copter, { fuel: 1 }));
+    expect(first.state.units[copter]!.fuel).toBe(0);
+    const second = round(first.state);
+    expect(second.state.units[copter]!.fuel).toBe(0);
+    expect([...first.events, ...second.events].map((event) => event.type)).not.toContain(
+      'UnitDestroyed',
+    );
   });
 
   it('sinks a ship along with its cargo', () => {
