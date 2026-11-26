@@ -52,6 +52,22 @@ describe('diving', () => {
   });
 });
 
+describe('aircraft', () => {
+  it('flies past a mountain rather than stopping for cover it would not get', () => {
+    // Six tiles of move: the mountain is one short of the furthest reachable tile.
+    const state = makeGame(
+      ['.....M' + '.'.repeat(14)],
+      [
+        { x: 0, y: 0, type: 'battleCopter', owner: 0 },
+        { x: 19, y: 0, type: 'infantry', owner: 1 },
+      ],
+    );
+    const action = chooseAction(rules, state);
+    expect(action.type).toBe('Move');
+    expect(destination(state, action)).toBe(6);
+  });
+});
+
 describe('fuel', () => {
   const sortie = (x: number, fuel: number) => {
     const state = makeGame(LONG_SEA, [
