@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { closeDialog, openNewGameDialog } from '../input/interaction';
 import { downloadSave, readSaveFile } from '../saves/saveFiles';
 import { SLOT_IDS, SLOT_LABELS, type SlotId, type SlotSummary } from '../saves/saveStore';
+import { armiesFor } from '../session/armies';
 import { ruleset, saveStore, savesPersist, session } from '../session/game';
 import { confirmReplace } from './confirmReplace';
 
@@ -17,15 +18,24 @@ const savedAtFormat = new Intl.DateTimeFormat(undefined, {
   timeStyle: 'short',
 });
 
-function playerName(index: number): string {
-  return factions[index]?.name ?? `Player ${index + 1}`;
+/** Army names of a saved game's sides. Saves from before commanders have none. */
+function armyNames(summary: SlotSummary): string[] {
+  const commanders = summary.commanders.map((id) =>
+    Math.max(
+      0,
+      ruleset.commanders.findIndex((commander) => commander.id === id),
+    ),
+  );
+  return armiesFor(ruleset, commanders).map((army) => army.name);
 }
 
 function describeProgress(summary: SlotSummary): string {
+  const names = armyNames(summary);
+  const name = (seat: number) => names[seat] ?? factions[seat]?.name ?? `Player ${seat + 1}`;
   const progress =
     summary.winner === null
-      ? `${playerName(summary.activePlayer)} to move`
-      : `${playerName(summary.winner)} won`;
+      ? `${name(summary.activePlayer)} to move`
+      : `${name(summary.winner)} won`;
   return `${summary.mapName} · Day ${summary.day} · ${progress}`;
 }
 
