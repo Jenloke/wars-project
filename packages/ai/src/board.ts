@@ -8,6 +8,7 @@ import {
   NO_TILE,
   NO_UNIT,
   UNREACHABLE,
+  maxRangeOf,
   unitCost,
   type CompiledRuleset,
   type GameState,
@@ -89,9 +90,11 @@ function mapThreats(
     const armed = def.maxRange > 0;
     if (!armed && !def.canCapture) continue;
 
+    // Range as the enemy's commander stretches it now.
+    const maxRange = maxRangeOf(ruleset, state, enemy.owner, enemy.type);
     if (armed && isIndirect(ruleset, enemy.type)) {
       // Indirect fire cannot follow a move: only the current position counts.
-      for (const tile of tilesInRange(enemy.pos, def.minRange, def.maxRange, width, height, band)) {
+      for (const tile of tilesInRange(enemy.pos, def.minRange, maxRange, width, height, band)) {
         addAttacker(attackers, stamp, tile, enemy.id);
       }
       if (!def.canCapture) continue;
@@ -102,7 +105,7 @@ function mapThreats(
       if (cost[from] === UNREACHABLE) continue;
       if (def.canCapture) captureReach[from] = 1;
       if (!armed || isIndirect(ruleset, enemy.type)) continue;
-      for (const tile of tilesInRange(from, def.minRange, def.maxRange, width, height, band)) {
+      for (const tile of tilesInRange(from, def.minRange, maxRange, width, height, band)) {
         addAttacker(attackers, stamp, tile, enemy.id);
       }
     }

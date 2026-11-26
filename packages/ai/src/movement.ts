@@ -5,6 +5,7 @@ import {
   NO_UNIT,
   neighbours,
   pathTo,
+  maxRangeOf,
   unitCost,
   weaponBaseDamage,
   type Action,
@@ -50,6 +51,7 @@ function fightGoal(board: Board, unitType: number, cache: GoalCache): Int32Array
   return cached(cache, `fight:${unitType}`, () => {
     const { ruleset, state, profile } = board;
     const def = ruleset.units[unitType]!;
+    const maxRange = maxRangeOf(ruleset, state, board.me, unitType);
     const strong: TileIndex[] = [];
     const weak: TileIndex[] = [];
     const band: TileIndex[] = [];
@@ -58,7 +60,7 @@ function fightGoal(board: Board, unitType: number, cache: GoalCache): Int32Array
       if (base === NO_DAMAGE || base <= 0) continue;
       const into = base >= profile.minTargetDamage ? strong : weak;
       into.push(
-        ...tilesInRange(enemy.pos, def.minRange, def.maxRange, state.width, state.height, band),
+        ...tilesInRange(enemy.pos, def.minRange, maxRange, state.width, state.height, band),
       );
     }
     const goals = strong.length > 0 ? strong : weak;

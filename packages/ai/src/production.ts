@@ -2,6 +2,7 @@ import {
   getBuildOptions,
   isIndirect,
   manhattan,
+  maxRangeOf,
   NO_DAMAGE,
   NO_UNIT,
   weaponBaseDamage,
@@ -151,11 +152,10 @@ function reachesFight(
   const reach = field;
   const reachable = (tile: TileIndex) => reach[tile]! < FAR;
   const band: TileIndex[] = [];
+  const maxRange = maxRangeOf(ruleset, state, me, unitType);
   const canFireOn = (target: TileIndex) =>
     def.maxRange > 0 &&
-    tilesInRange(target, def.minRange, def.maxRange, state.width, state.height, band).some(
-      reachable,
-    );
+    tilesInRange(target, def.minRange, maxRange, state.width, state.height, band).some(reachable);
 
   for (const enemy of board.enemies) if (canFireOn(enemy.pos)) return true;
   for (let tile = 0; tile < state.owner.length; tile++) {

@@ -3,7 +3,7 @@ import {
   canCaptureAt,
   canCounter,
   damageBetween,
-  hpPips,
+  captureAmount,
   isIndirect,
   manhattan,
   NO_DAMAGE,
@@ -104,7 +104,11 @@ function captureStake(board: Board, enemy: Unit): number {
   if (!terrain.isProperty || state.owner[tile] === enemy.owner) return 0;
   const remaining = state.capture[tile]!;
   if (remaining >= ruleset.rules.capturePoints) return 0;
-  if (terrain.isHq && state.owner[tile] === me && remaining <= hpPips(ruleset, enemy.hp)) {
+  if (
+    terrain.isHq &&
+    state.owner[tile] === me &&
+    remaining <= captureAmount(ruleset, state, enemy)
+  ) {
     return board.profile.winValue;
   }
   return propertyValue(board, tile) * board.profile.captureBreak;
@@ -140,14 +144,14 @@ function attackScore(board: Board, unit: Unit, from: TileIndex, target: TileInde
 function captureScore(board: Board, unit: Unit, tile: TileIndex): number {
   const { ruleset, state, profile } = board;
   const remaining = state.capture[tile]!;
-  const pips = hpPips(ruleset, unit.hp);
+  const amount = captureAmount(ruleset, state, unit);
   const terrain = ruleset.terrain[state.terrain[tile]!]!;
-  if (remaining <= pips) {
+  if (remaining <= amount) {
     // A finished capture is banked even if the unit is lost afterwards.
     const enemyHq = terrain.isHq && state.owner[tile] !== NO_OWNER;
     return enemyHq ? profile.winValue : propertyValue(board, tile);
   }
-  const progress = propertyValue(board, tile) * profile.captureProgress * (pips / remaining);
+  const progress = propertyValue(board, tile) * profile.captureProgress * (amount / remaining);
   return progress - profile.captureExposure * board.caution * dangerAt(board, unit, tile, unit.hp);
 }
 
