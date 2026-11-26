@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { getBuildOptions, getUnitOptions, type GameState } from '../src/index';
-import { apply, at, makeGame, reject, rules, unitAt, withUnit } from './fixtures';
+import { compileRuleset, getBuildOptions, getUnitOptions, type GameState } from '../src/index';
+import { apply, at, makeGame, reject, rules, testRuleset, unitAt, withUnit } from './fixtures';
 
 function fullRound(state: GameState): GameState {
   return apply(apply(state, { type: 'EndTurn' }).state, { type: 'EndTurn' }).state;
@@ -193,6 +193,28 @@ describe('transport', () => {
     expect(
       reject(state, { type: 'Unload', unit: apc, path: [], drops: [{ cargo: tank, to: 0 }] }),
     ).toMatch(/not carried/);
+  });
+
+  it('carries units named by id, move type or tag', () => {
+    // The fixture APC names a move type ("foot"); this one names an id and a tag.
+    const units = testRuleset.units.map((unit) => {
+      if (unit.id === 'apc')
+        return { ...unit, transport: { capacity: 2, carries: ['tank', 'heavy'] } };
+      if (unit.id === 'artillery') return { ...unit, tags: ['heavy'] };
+      return unit;
+    });
+    const ruleset = compileRuleset({ ...testRuleset, units });
+    const apc = ruleset.units[ruleset.unitIndex.get('apc')!]!;
+    const carried = ruleset.units.filter((_unit, type) => apc.carries[type] === 1);
+    expect(carried.map((unit) => unit.id)).toEqual(['tank', 'artillery']);
+    expect(ruleset.units[ruleset.unitIndex.get('artillery')!]!.tags).toEqual(['heavy']);
+  });
+
+  it('refuses a cargo rule that names no unit', () => {
+    const units = testRuleset.units.map((unit) =>
+      unit.id === 'apc' ? { ...unit, transport: { capacity: 1, carries: ['boat'] } } : unit,
+    );
+    expect(() => compileRuleset({ ...testRuleset, units })).toThrow(/"boat" matches no unit/);
   });
 
   it('loses its cargo when destroyed', () => {

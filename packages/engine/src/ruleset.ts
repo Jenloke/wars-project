@@ -8,16 +8,25 @@
 export const IMPASSABLE = 255;
 export const NO_DAMAGE = -1;
 
+/**
+ * Names a group of units in rules data. A unit matches a selector equal to its
+ * id, its move type, or one of its tags, so rules can say "infantry", "tread" or
+ * "copter" without listing every unit.
+ */
+export type UnitSelector = string;
+
 export interface RawTransport {
   readonly capacity: number;
-  /** Move types this transport can carry. */
-  readonly carries: readonly string[];
+  /** Units this transport can carry. */
+  readonly carries: readonly UnitSelector[];
 }
 
 export interface RawUnitDef {
   readonly id: string;
   readonly name: string;
   readonly moveType: string;
+  /** Free-form classes (such as "copter" or "naval") that selectors can name. */
+  readonly tags?: readonly string[] | undefined;
   readonly movePoints: number;
   readonly cost: number;
   readonly maxFuel: number;
@@ -111,8 +120,9 @@ export interface CompiledUnit {
   readonly maxRange: number;
   readonly canCapture: boolean;
   readonly canSupply: boolean;
+  readonly tags: readonly string[];
   readonly capacity: number;
-  /** Per move type: 1 if this transport can carry it. */
+  /** Per unit type: 1 if this transport can carry it. */
   readonly carries: Uint8Array;
 }
 
@@ -178,6 +188,32 @@ function lookup(index: ReadonlyMap<string, number>, id: string, kind: string): n
   return value;
 }
 
+function matches(selector: UnitSelector, unit: RawUnitDef): boolean {
+  return selector === unit.id || selector === unit.moveType || (unit.tags ?? []).includes(selector);
+}
+
+/**
+ * Per unit type: 1 if any selector names it. A selector that names no unit is a
+ * typo in the data, so it throws rather than silently matching nothing.
+ */
+export function selectUnits(
+  units: readonly RawUnitDef[],
+  selectors: readonly UnitSelector[],
+  context: string,
+): Uint8Array {
+  const selected = new Uint8Array(units.length);
+  for (const selector of selectors) {
+    let found = false;
+    units.forEach((unit, index) => {
+      if (!matches(selector, unit)) return;
+      selected[index] = 1;
+      found = true;
+    });
+    if (!found) throw new Error(`${context}: "${selector}" matches no unit`);
+  }
+  return selected;
+}
+
 function compileCommander(
   raw: RawCommanderDef,
   unitCount: number,
@@ -232,10 +268,10 @@ export function compileRuleset(raw: RawRuleset): CompiledRuleset {
   if (raw.commanders.length === 0) throw new Error('Ruleset needs a default commander');
 
   const units: CompiledUnit[] = raw.units.map((u) => {
-    const carries = new Uint8Array(moveTypeCount);
-    if (u.transport !== undefined) {
-      for (const mt of u.transport.carries) carries[lookup(moveTypeIndex, mt, 'move type')] = 1;
-    }
+    const carries =
+      u.transport === undefined
+        ? new Uint8Array(unitCount)
+        : selectUnits(raw.units, u.transport.carries, `Unit "${u.id}" transport`);
     return {
       id: u.id,
       name: u.name,
@@ -248,6 +284,7 @@ export function compileRuleset(raw: RawRuleset): CompiledRuleset {
       maxRange: u.maxRange,
       canCapture: u.canCapture,
       canSupply: u.canSupply,
+      tags: u.tags ?? [],
       capacity: u.transport?.capacity ?? 0,
       carries,
     };
