@@ -10,26 +10,23 @@ import {
   type TileIndex,
   type Unit,
 } from '@tactics/engine';
-import {
-  CELL,
-  findSprite,
-  getSprite,
-  TEAM_STRIDE,
-  type AtlasScale,
-  type SpriteRef,
-} from '@tactics/sprites';
+import { GRID, type Sprite, type SpriteLibrary } from '@tactics/sprites';
 import type { UiState } from '../store/uiStore';
-import { renderScale } from './camera';
+import { tileSize } from './camera';
 import type { Playback } from './playback';
-import { buildTerrainLayer, compileTerrainSprites } from './terrainLayer';
+import { SpriteCache } from './spriteCache';
+import { compileTerrainLooks, drawTerrain, planTerrain, type TerrainPlan } from './terrainLayer';
 
 const BACKGROUND = '#1b2a3a';
 const IDLE_FRAME_MS = 500;
 const RANGE_ALPHA = 0.5;
 const TARGET_ALPHA = 0.6;
+/** Opacity of the shadow under lifted (flying) units. */
+const SHADOW_ALPHA = 0.3;
+/** Opacity of a dived unit, seen through the water. */
+const DIVED_ALPHA = 0.55;
 /** A unit is flagged as low once fuel or ammo drops to this fraction of its maximum. */
 const LOW_SUPPLY_FRACTION = 0.3;
-const MOVED_DIM = 'rgba(16, 20, 32, 0.5)';
 
 /** Everything a frame is drawn from. The renderer reads it and changes none of it. */
 export interface Scene {
@@ -49,19 +46,6 @@ export function idleFrameAt(time: number): number {
   return Math.floor(time / IDLE_FRAME_MS) & 1;
 }
 
-/** A copy of the atlas with every opaque pixel darkened, for units that have acted. */
-function dimmedCopy(atlas: HTMLImageElement): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
-  canvas.width = atlas.naturalWidth;
-  canvas.height = atlas.naturalHeight;
-  const ctx = canvas.getContext('2d')!;
-  ctx.drawImage(atlas, 0, 0);
-  ctx.globalCompositeOperation = 'source-atop';
-  ctx.fillStyle = MOVED_DIM;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  return canvas;
-}
-
 function directionBit(from: TileIndex, to: TileIndex, width: number): number {
   if (to === from - width) return MASK_NORTH;
   if (to === from + 1) return MASK_EAST;
@@ -69,106 +53,124 @@ function directionBit(from: TileIndex, to: TileIndex, width: number): number {
   return MASK_WEST;
 }
 
+/** How a unit type is drawn, with its sprite resolved. */
+interface UnitLook {
+  readonly sprite: Sprite;
+  /** Height above the tile, in grid units. */
+  readonly lift: number;
+}
+
+/** Tiles of the map inside the view. */
+interface Bounds {
+  readonly x0: number;
+  readonly y0: number;
+  readonly x1: number;
+  readonly y1: number;
+}
+
 export function createRenderer(
   canvas: HTMLCanvasElement,
   ruleset: CompiledRuleset,
-  atlases: Readonly<Record<AtlasScale, HTMLImageElement>>,
+  library: SpriteLibrary,
 ): Renderer {
   const context = canvas.getContext('2d', { alpha: false });
   if (context === null) throw new Error('Canvas 2D is not available');
   const ctx = context;
+  const cache = new SpriteCache();
 
-  // Sprite IDs are resolved to atlas positions once, not per frame.
-  const terrainSprites = compileTerrainSprites(ruleset);
-  const unitSprites = ruleset.units.map((unit) =>
-    getSprite(unitVisual(unit.id, ruleset.moveTypes[unit.moveType]!).sprite),
-  );
+  // Content IDs are resolved to sprites once, not per frame. Missing art falls
+  // back to placeholders, so new units and buildings draw before they have any.
+  const terrainLooks = compileTerrainLooks(ruleset, library);
+  const unitLooks: UnitLook[] = ruleset.units.map((unit) => {
+    const visual = unitVisual(unit.id, ruleset.moveTypes[unit.moveType]!);
+    return { sprite: library.resolve([visual.sprite, visual.fallback])!, lift: visual.lift };
+  });
   const sprite = {
-    cursor: getSprite('ui.cursor'),
-    moveTile: getSprite('ui.moveTile'),
-    attackTile: getSprite('ui.attackTile'),
-    capture: getSprite('ui.iconCapture'),
-    loaded: getSprite('ui.iconLoaded'),
-    fuel: getSprite('ui.iconFuel'),
-    ammo: getSprite('ui.iconAmmo'),
-    puff: getSprite('fx.puff'),
+    cursor: library.get('ui.cursor'),
+    moveTile: library.get('ui.moveTile'),
+    attackTile: library.get('ui.attackTile'),
+    capture: library.get('ui.iconCapture'),
+    loaded: library.get('ui.iconLoaded'),
+    fuel: library.get('ui.iconFuel'),
+    ammo: library.get('ui.iconAmmo'),
+    puff: library.get('fx.puff'),
+    shadow: library.find('ui.shadow'),
+    submerged: library.find('ui.submerged'),
   };
-  const hpDigits: (SpriteRef | undefined)[] = [];
-  for (let pips = 0; pips < maxPips(ruleset); pips++) hpDigits.push(findSprite(`ui.hp.${pips}`));
-  const pathPieces: (SpriteRef | undefined)[] = [];
-  const pathHeads: (SpriteRef | undefined)[] = [];
+  const hpDigits: (Sprite | undefined)[] = [];
+  for (let pips = 0; pips < maxPips(ruleset); pips++) hpDigits.push(library.find(`ui.hp.${pips}`));
+  const pathPieces: (Sprite | undefined)[] = [];
+  const pathHeads: (Sprite | undefined)[] = [];
   for (let mask = 0; mask < 16; mask++) {
-    pathPieces.push(findSprite(`ui.path.${mask}`));
-    pathHeads.push(findSprite(`ui.pathHead.${mask}`));
+    pathPieces.push(library.find(`ui.path.${mask}`));
+    pathHeads.push(library.find(`ui.pathHead.${mask}`));
   }
 
-  const dimmed: Partial<Record<AtlasScale, HTMLCanvasElement>> = {};
-  let layer: HTMLCanvasElement | null = null;
-  let layerTerrain: readonly number[] | null = null;
-  let layerOwner: readonly number[] | null = null;
-  let layerScale: AtlasScale = 1;
+  // Terrain changes rarely, so it is drawn into a view-sized layer that is only
+  // redrawn when the map, ownership, camera or tile size changes. An animated
+  // frame is then one blit of that layer plus the units.
+  const layer = document.createElement('canvas');
+  const layerCtx = layer.getContext('2d', { alpha: false });
+  if (layerCtx === null) throw new Error('Canvas 2D is not available');
+  let plan: TerrainPlan | null = null;
+  let planTerrainOf: readonly number[] | null = null;
+  let planOwnerOf: readonly number[] | null = null;
+  let layerKey = '';
 
   // Per-frame drawing context, set at the top of `render`.
-  let atlas: CanvasImageSource = atlases[1];
-  let atlasScale: AtlasScale = 1;
-  let tile = CELL;
+  let tile = GRID;
   let originX = 0;
   let originY = 0;
 
-  function blit(
-    source: CanvasImageSource,
-    ref: SpriteRef,
-    frame: number,
-    variant: number,
-    x: number,
-    y: number,
-    flip: boolean,
-  ): void {
-    const size = CELL * atlasScale;
-    const sx = (ref.x + frame * CELL) * atlasScale;
-    const sy = (ref.y + (ref.team ? variant * TEAM_STRIDE : 0)) * atlasScale;
+  function draw(image: CanvasImageSource, x: number, y: number, flip = false): void {
     if (flip) {
       ctx.setTransform(-1, 0, 0, 1, x + tile, y);
-      ctx.drawImage(source, sx, sy, size, size, 0, 0, tile, tile);
+      ctx.drawImage(image, 0, 0);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
     } else {
-      ctx.drawImage(source, sx, sy, size, size, x, y, tile, tile);
+      ctx.drawImage(image, x, y);
     }
   }
 
-  function drawAtTile(ref: SpriteRef, at: TileIndex, width: number): void {
-    blit(
-      atlas,
-      ref,
-      0,
-      0,
+  function drawAtTile(sprite: Sprite, at: TileIndex, width: number, frame = 0): void {
+    draw(
+      cache.get(sprite, frame, -1),
       originX + (at % width) * tile,
       originY + ((at / width) | 0) * tile,
-      false,
     );
   }
 
   function drawUnit(state: GameState, unit: Unit, x: number, y: number, frame: number): void {
     const px = Math.round(x);
     const py = Math.round(y);
-    const ref = unitSprites[unit.type]!;
+    const look = unitLooks[unit.type]!;
     const acted = unit.moved && unit.owner === state.activePlayer;
-    const source = acted ? (dimmed[atlasScale] ??= dimmedCopy(atlases[atlasScale])) : atlas;
-    // Sprites are authored facing right; odd player slots face left.
-    blit(source, ref, acted ? 0 : frame % ref.frames, unit.owner, px, py, (unit.owner & 1) === 1);
+    const lift = Math.round((look.lift * tile) / GRID);
+
+    if (lift > 0 && sprite.shadow !== undefined) {
+      ctx.globalAlpha = SHADOW_ALPHA;
+      draw(cache.get(sprite.shadow, 0, -1), px, py);
+    }
+    ctx.globalAlpha = unit.dived ? DIVED_ALPHA : 1;
+    // Sprites are authored facing right; odd player slots face left. Units that
+    // have acted hold still on their first frame.
+    const image = cache.get(look.sprite, acted ? 0 : frame, unit.owner, acted);
+    draw(image, px, py - lift, (unit.owner & 1) === 1);
+    ctx.globalAlpha = 1;
+    if (unit.dived && sprite.submerged !== undefined) {
+      draw(cache.get(sprite.submerged, frame, -1), px, py);
+    }
 
     const def = ruleset.units[unit.type]!;
-    const pips = hpPips(ruleset, unit.hp);
-    const digit = hpDigits[pips];
-    if (digit !== undefined) blit(atlas, digit, 0, 0, px, py, false);
-    if (unit.cargo.length > 0) blit(atlas, sprite.loaded, 0, 0, px, py, false);
+    const digit = hpDigits[hpPips(ruleset, unit.hp)];
+    if (digit !== undefined) draw(cache.get(digit, 0, -1), px, py);
+    if (unit.cargo.length > 0) draw(cache.get(sprite.loaded, 0, -1), px, py);
     else if (unit.pos !== NO_TILE && state.capture[unit.pos]! < ruleset.rules.capturePoints) {
-      blit(atlas, sprite.capture, 0, 0, px, py, false);
+      draw(cache.get(sprite.capture, 0, -1), px, py);
     }
-    if (unit.fuel <= def.maxFuel * LOW_SUPPLY_FRACTION)
-      blit(atlas, sprite.fuel, 0, 0, px, py, false);
+    if (unit.fuel <= def.maxFuel * LOW_SUPPLY_FRACTION) draw(cache.get(sprite.fuel, 0, -1), px, py);
     if (def.maxAmmo > 0 && unit.ammo <= def.maxAmmo * LOW_SUPPLY_FRACTION) {
-      blit(atlas, sprite.ammo, 0, 0, px, py, false);
+      draw(cache.get(sprite.ammo, 0, -1), px, py);
     }
   }
 
@@ -223,11 +225,9 @@ export function createRenderer(
     if (current === null) return;
 
     if (current.kind === 'puff') {
-      const step = Math.min(
-        sprite.puff.frames - 1,
-        Math.floor(playback.progress * sprite.puff.frames),
-      );
-      blit(atlas, sprite.puff, step, 0, tileX(current.at), tileY(current.at), false);
+      const frames = sprite.puff.frames.length;
+      const step = Math.min(frames - 1, Math.floor(playback.progress * frames));
+      draw(cache.get(sprite.puff, step, -1), tileX(current.at), tileY(current.at));
       return;
     }
     const unit = state.units[current.unit];
@@ -268,6 +268,28 @@ export function createRenderer(
     }
   }
 
+  /** Redraws the terrain layer if anything it depends on has changed. */
+  function updateLayer(state: GameState, bounds: Bounds): void {
+    if (plan === null || planTerrainOf !== state.terrain || planOwnerOf !== state.owner) {
+      // Structural sharing in the engine means an unchanged array is the same
+      // reference, so this is a cheap check.
+      plan = planTerrain(state, terrainLooks);
+      planTerrainOf = state.terrain;
+      planOwnerOf = state.owner;
+      layerKey = '';
+    }
+    const key = `${tile} ${originX} ${originY} ${canvas.width} ${canvas.height}`;
+    if (key === layerKey) return;
+    layerKey = key;
+    if (layer.width !== canvas.width || layer.height !== canvas.height) {
+      layer.width = canvas.width;
+      layer.height = canvas.height;
+    }
+    layerCtx!.fillStyle = BACKGROUND;
+    layerCtx!.fillRect(0, 0, layer.width, layer.height);
+    drawTerrain(layerCtx!, plan, cache, bounds, originX, originY);
+  }
+
   function render(scene: Scene): void {
     const { ui, playback, time } = scene;
     const animating = playback.base !== null;
@@ -275,54 +297,32 @@ export function createRenderer(
     const { camera, viewport } = ui;
     const { width, height } = state;
 
-    const scale = renderScale(camera, viewport);
-    atlasScale = scale >= 2 ? 2 : 1;
-    atlas = atlases[atlasScale];
-    tile = CELL * scale;
+    tile = tileSize(camera, viewport);
+    if (tile !== cache.tileSize) {
+      cache.resize(tile);
+      layerKey = '';
+    }
     originX = -Math.round(camera.x);
     originY = -Math.round(camera.y);
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.imageSmoothingEnabled = false;
     ctx.globalAlpha = 1;
-    ctx.fillStyle = BACKGROUND;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Layer 1: terrain and buildings, cached. Structural sharing in the engine
-    // means an unchanged array is the same reference, so this is a cheap check.
-    if (
-      layer === null ||
-      layerTerrain !== state.terrain ||
-      layerOwner !== state.owner ||
-      layerScale !== atlasScale
-    ) {
-      layer = buildTerrainLayer(state, terrainSprites, atlas, atlasScale);
-      layerTerrain = state.terrain;
-      layerOwner = state.owner;
-      layerScale = atlasScale;
-    }
 
     // Only tiles inside the view are drawn.
     const x0 = Math.max(0, Math.floor(-originX / tile));
     const y0 = Math.max(0, Math.floor(-originY / tile));
     const x1 = Math.min(width - 1, Math.floor((-originX + canvas.width - 1) / tile));
     const y1 = Math.min(height - 1, Math.floor((-originY + canvas.height - 1) / tile));
-    if (x1 < x0 || y1 < y0) return;
+    if (x1 < x0 || y1 < y0) {
+      ctx.fillStyle = BACKGROUND;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
 
-    const cell = CELL * atlasScale;
-    const columns = x1 - x0 + 1;
-    const rows = y1 - y0 + 1;
-    ctx.drawImage(
-      layer,
-      x0 * cell,
-      y0 * cell,
-      columns * cell,
-      rows * cell,
-      originX + x0 * tile,
-      originY + y0 * tile,
-      columns * tile,
-      rows * tile,
-    );
+    // Layer 1: terrain and buildings, cached.
+    updateLayer(state, { x0, y0, x1, y1 });
+    ctx.drawImage(layer, 0, 0);
 
     // Layer 2: range, targets and the path arrow.
     if (!animating) drawOverlays(state, ui);

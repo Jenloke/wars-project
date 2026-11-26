@@ -7,55 +7,60 @@ import {
   type AutotileRule,
 } from '@tactics/content';
 import { NO_OWNER, type CompiledRuleset, type GameState } from '@tactics/engine';
-import {
-  CELL,
-  findSprite,
-  getSprite,
-  NEUTRAL_VARIANT,
-  TEAM_STRIDE,
-  type AtlasScale,
-  type SpriteRef,
-} from '@tactics/sprites';
+import type { Sprite, SpriteLibrary } from '@tactics/sprites';
+import type { SpriteCache } from './spriteCache';
 
 interface Autotile {
   /** Per terrain index: 1 if a neighbour of that terrain counts as connected. */
   readonly connects: Uint8Array;
   /** Sprite per 4-bit neighbour mask; undefined draws nothing. */
-  readonly variants: readonly (SpriteRef | undefined)[];
+  readonly variants: readonly (Sprite | undefined)[];
 }
 
-interface TerrainSprite {
-  readonly base: SpriteRef | undefined;
-  readonly team: boolean;
+/** How one terrain type is drawn, with its sprites resolved. */
+export interface TerrainLook {
+  /** Drawn when the terrain does not autotile. */
+  readonly base: Sprite | undefined;
   readonly autotile: Autotile | undefined;
   readonly overlay: Autotile | undefined;
 }
 
-function compileAutotile(ruleset: CompiledRuleset, sprite: string, rule: AutotileRule): Autotile {
+function compileAutotile(
+  ruleset: CompiledRuleset,
+  library: SpriteLibrary,
+  sprite: string,
+  rule: AutotileRule,
+): Autotile {
   const connects = new Uint8Array(ruleset.terrainCount);
   for (const id of rule.connectsTo) {
     const index = ruleset.terrainIndex.get(id);
     if (index !== undefined) connects[index] = 1;
   }
-  const variants: (SpriteRef | undefined)[] = [];
+  const variants: (Sprite | undefined)[] = [];
   for (let mask = 0; mask < 16; mask++) {
     const id = rule.variants === undefined ? `${sprite}.${mask}` : rule.variants[mask];
-    variants.push(id === undefined ? undefined : findSprite(id));
+    variants.push(id === undefined ? undefined : library.find(id));
   }
   return { connects, variants };
 }
 
-/** Resolves the content's visual data to sprite references, once per ruleset. */
-export function compileTerrainSprites(ruleset: CompiledRuleset): TerrainSprite[] {
+/** Resolves the content's visual data to sprites, once per ruleset. */
+export function compileTerrainLooks(
+  ruleset: CompiledRuleset,
+  library: SpriteLibrary,
+): TerrainLook[] {
   return ruleset.terrain.map((terrain) => {
     const visual = terrainVisual(terrain.id, terrain.isProperty);
-    const autotile = visual.autotile && compileAutotile(ruleset, visual.sprite, visual.autotile);
+    let autotile =
+      visual.autotile && compileAutotile(ruleset, library, visual.sprite, visual.autotile);
+    // Autotiled terrain with no art at all yet falls back like any other.
+    if (autotile?.variants.every((variant) => variant === undefined)) autotile = undefined;
     return {
-      base: autotile ? undefined : getSprite(visual.sprite),
-      team: terrain.isProperty,
+      base: autotile ? undefined : library.resolve([visual.sprite, visual.fallback]),
       autotile,
       overlay:
-        visual.overlay && compileAutotile(ruleset, visual.overlay.sprite, visual.overlay.autotile),
+        visual.overlay &&
+        compileAutotile(ruleset, library, visual.overlay.sprite, visual.overlay.autotile),
     };
   });
 }
@@ -73,54 +78,52 @@ function neighbourMask(state: GameState, tile: number, connects: Uint8Array): nu
   return mask;
 }
 
+/** The sprites on every tile, worked out once per terrain and ownership change. */
+export interface TerrainPlan {
+  readonly width: number;
+  readonly base: readonly (Sprite | undefined)[];
+  readonly overlay: readonly (Sprite | undefined)[];
+  /** Per tile: owner whose colours a building is drawn in, `NO_OWNER` for neutral. */
+  readonly owner: readonly number[];
+}
+
+export function planTerrain(state: GameState, looks: readonly TerrainLook[]): TerrainPlan {
+  const count = state.terrain.length;
+  const base: (Sprite | undefined)[] = new Array<Sprite | undefined>(count);
+  const overlay: (Sprite | undefined)[] = new Array<Sprite | undefined>(count);
+  for (let tile = 0; tile < count; tile++) {
+    const look = looks[state.terrain[tile]!]!;
+    base[tile] = look.autotile
+      ? look.autotile.variants[neighbourMask(state, tile, look.autotile.connects)]
+      : look.base;
+    overlay[tile] = look.overlay?.variants[neighbourMask(state, tile, look.overlay.connects)];
+  }
+  return { width: state.width, base, overlay, owner: state.owner };
+}
+
 /**
- * Draws all terrain and buildings of `state` into a new canvas at the atlas scale.
- * This is the expensive part of a frame, so the renderer keeps the result and only
- * rebuilds when the terrain or ownership arrays change.
+ * Draws the tiles in columns `x0..x1` and rows `y0..y1` of `plan`, with the
+ * map's top-left corner at `(originX, originY)` and tiles `cache.tileSize` wide.
  */
-export function buildTerrainLayer(
-  state: GameState,
-  sprites: readonly TerrainSprite[],
-  atlas: CanvasImageSource,
-  scale: AtlasScale,
-): HTMLCanvasElement {
-  const size = CELL * scale;
-  const canvas = document.createElement('canvas');
-  canvas.width = state.width * size;
-  canvas.height = state.height * size;
-  const ctx = canvas.getContext('2d');
-  if (ctx === null) throw new Error('Canvas 2D is not available');
-  ctx.imageSmoothingEnabled = false;
-
-  const draw = (sprite: SpriteRef, variant: number, tile: number) => {
-    const sy = sprite.y + (sprite.team ? variant * TEAM_STRIDE : 0);
-    ctx.drawImage(
-      atlas,
-      sprite.x * scale,
-      sy * scale,
-      size,
-      size,
-      (tile % state.width) * size,
-      ((tile / state.width) | 0) * size,
-      size,
-      size,
-    );
-  };
-
-  for (let tile = 0; tile < state.terrain.length; tile++) {
-    const visual = sprites[state.terrain[tile]!]!;
-    const owner = state.owner[tile]!;
-    const variant = owner === NO_OWNER ? NEUTRAL_VARIANT : owner;
-
-    const sprite = visual.autotile
-      ? visual.autotile.variants[neighbourMask(state, tile, visual.autotile.connects)]
-      : visual.base;
-    if (sprite !== undefined) draw(sprite, variant, tile);
-
-    if (visual.overlay) {
-      const overlay = visual.overlay.variants[neighbourMask(state, tile, visual.overlay.connects)];
-      if (overlay !== undefined) draw(overlay, variant, tile);
+export function drawTerrain(
+  ctx: CanvasRenderingContext2D,
+  plan: TerrainPlan,
+  cache: SpriteCache,
+  bounds: { readonly x0: number; readonly y0: number; readonly x1: number; readonly y1: number },
+  originX: number,
+  originY: number,
+): void {
+  const tile = cache.tileSize;
+  for (let y = bounds.y0; y <= bounds.y1; y++) {
+    for (let x = bounds.x0; x <= bounds.x1; x++) {
+      const at = y * plan.width + x;
+      const owner = plan.owner[at] ?? NO_OWNER;
+      const px = originX + x * tile;
+      const py = originY + y * tile;
+      const base = plan.base[at];
+      if (base !== undefined) ctx.drawImage(cache.get(base, 0, owner), px, py);
+      const overlay = plan.overlay[at];
+      if (overlay !== undefined) ctx.drawImage(cache.get(overlay, 0, owner), px, py);
     }
   }
-  return canvas;
 }
