@@ -37,6 +37,7 @@ const extraUnits: RawUnitDef[] = [
     canSupply: false,
     fuelPerDay: 2,
     lostWithoutFuel: true,
+    ignoresTerrainDefence: true,
   },
   {
     id: 'fighter',
@@ -53,6 +54,7 @@ const extraUnits: RawUnitDef[] = [
     canSupply: false,
     fuelPerDay: 5,
     lostWithoutFuel: true,
+    ignoresTerrainDefence: true,
   },
   {
     id: 'carrier',

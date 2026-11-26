@@ -45,6 +45,8 @@ export interface RawUnitDef {
    * daily use and any resupply: aircraft crash and ships sink.
    */
   readonly lostWithoutFuel?: boolean | undefined;
+  /** True for units that terrain gives no cover, such as aircraft. */
+  readonly ignoresTerrainDefence?: boolean | undefined;
 }
 
 export interface RawPropertyDef {
@@ -130,6 +132,7 @@ export interface CompiledUnit {
   readonly tags: readonly string[];
   readonly fuelPerDay: number;
   readonly lostWithoutFuel: boolean;
+  readonly ignoresTerrainDefence: boolean;
   readonly capacity: number;
   /** Per unit type: 1 if this transport can carry it. */
   readonly carries: Uint8Array;
@@ -296,6 +299,7 @@ export function compileRuleset(raw: RawRuleset): CompiledRuleset {
       tags: u.tags ?? [],
       fuelPerDay: u.fuelPerDay ?? 0,
       lostWithoutFuel: u.lostWithoutFuel ?? false,
+      ignoresTerrainDefence: u.ignoresTerrainDefence ?? false,
       capacity: u.transport?.capacity ?? 0,
       carries,
     };

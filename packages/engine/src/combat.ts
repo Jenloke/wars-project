@@ -1,7 +1,7 @@
 import { manhattan } from './grid';
 import { NO_DAMAGE, type CompiledRuleset } from './ruleset';
 import { NO_UNIT, type GameState, type TileIndex, type Unit, type UnitId } from './types';
-import { hpPips, maxPips } from './units';
+import { defenceStars, hpPips, maxPips } from './units';
 
 /** True if the attacker would fire its ammo-using primary weapon at this defender. */
 export function usesPrimaryWeapon(
@@ -85,7 +85,7 @@ export function damageBetween(
     ruleset.commanders[state.players[attacker.owner]!.commander]!.attack[attacker.type]!;
   const defencePercent =
     ruleset.commanders[state.players[defender.owner]!.commander]!.defence[defender.type]!;
-  const stars = ruleset.terrain[state.terrain[defenderTile]!]!.defence;
+  const stars = defenceStars(ruleset, state, defender.type, defenderTile);
   return computeDamage(
     ruleset,
     base,

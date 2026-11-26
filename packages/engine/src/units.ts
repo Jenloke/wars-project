@@ -1,5 +1,5 @@
 import type { CompiledRuleset } from './ruleset';
-import type { GameState, PlayerIndex, Unit } from './types';
+import type { GameState, PlayerIndex, TileIndex, Unit } from './types';
 
 /** Displayed HP pips (1..10 with default rules) for an internal HP value. */
 export function hpPips(ruleset: CompiledRuleset, hp: number): number {
@@ -26,6 +26,17 @@ export function unitCost(
 ): number {
   const commander = ruleset.commanders[state.players[player]!.commander]!;
   return Math.floor((ruleset.units[unitType]!.cost * commander.cost[unitType]!) / 100);
+}
+
+/** Defence stars a unit of `unitType` gets from the terrain on `tile`. */
+export function defenceStars(
+  ruleset: CompiledRuleset,
+  state: GameState,
+  unitType: number,
+  tile: TileIndex,
+): number {
+  if (ruleset.units[unitType]!.ignoresTerrainDefence) return 0;
+  return ruleset.terrain[state.terrain[tile]!]!.defence;
 }
 
 export function isIndirect(ruleset: CompiledRuleset, unitType: number): boolean {
