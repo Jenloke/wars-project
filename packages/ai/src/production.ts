@@ -9,6 +9,7 @@ import {
   type TileIndex,
 } from '@tactics/engine';
 import { unitValue, type Board } from './board';
+import { costsFrom, FAR, tilesInRange } from './distance';
 import type { Plan } from './plan';
 
 /** One enemy unit (or, before any exist, one expected kind) to build against. */
@@ -128,6 +129,42 @@ function lifetimeValue(
   return dealtValue / weights / attrition - cost;
 }
 
+/**
+ * True if a unit of `unitType` built on `at` could ever get into the fight: stand
+ * where it can fire on an enemy unit or property, or, if it captures, walk onto a
+ * property we do not own. A port on an enclosed lake builds nothing useful.
+ * `fields` caches the terrain reach from `at` per move type.
+ */
+function reachesFight(
+  board: Board,
+  unitType: number,
+  at: TileIndex,
+  fields: Map<number, Int32Array>,
+): boolean {
+  const { ruleset, state, me } = board;
+  const def = ruleset.units[unitType]!;
+  let field = fields.get(def.moveType);
+  if (field === undefined) {
+    field = costsFrom(ruleset, state, def.moveType, [at]);
+    fields.set(def.moveType, field);
+  }
+  const reach = field;
+  const reachable = (tile: TileIndex) => reach[tile]! < FAR;
+  const band: TileIndex[] = [];
+  const canFireOn = (target: TileIndex) =>
+    def.maxRange > 0 &&
+    tilesInRange(target, def.minRange, def.maxRange, state.width, state.height, band).some(
+      reachable,
+    );
+
+  for (const enemy of board.enemies) if (canFireOn(enemy.pos)) return true;
+  for (let tile = 0; tile < state.owner.length; tile++) {
+    if (state.owner[tile] === me || !ruleset.terrain[state.terrain[tile]!]!.isProperty) continue;
+    if (def.canCapture ? reachable(tile) : canFireOn(tile)) return true;
+  }
+  return false;
+}
+
 /** Our bases that are free to build on, nearest the enemy first. */
 function freeBases(board: Board): TileIndex[] {
   const { ruleset, state, me } = board;
@@ -175,6 +212,7 @@ export function findBuild(board: Board, plan: Plan): Action | null {
     const cheapest = Math.min(...options.map((option) => option.cost));
     const evenSplit = (funds / bases.length) * profile.budgetShare;
     const budget = Math.max(cheapest, Math.min(funds, evenSplit));
+    const fields = new Map<number, Int32Array>();
 
     let best: { unitType: number; score: number } | null = null;
     for (const option of options) {
@@ -182,6 +220,7 @@ export function findBuild(board: Board, plan: Plan): Action | null {
       const def = ruleset.units[option.unitType]!;
       const lifetime = lifetimeValue(board, option.unitType, option.cost, army);
       if (lifetime === null && !(needCapturers && def.canCapture)) continue;
+      if (!reachesFight(board, option.unitType, at, fields)) continue;
       const common = (owned.get(option.unitType) ?? 0) / armySize;
       let score = (lifetime ?? 0) - profile.diversity * common * option.cost;
       if (needCapturers && def.canCapture) score += profile.captureNeedDays * board.income;

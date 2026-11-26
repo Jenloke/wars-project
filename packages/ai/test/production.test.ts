@@ -21,6 +21,27 @@ function base(attacker: number, defender: number): number {
 const tank = unitType('tank');
 const infantry = unitType('infantry');
 
+describe('production at ports', () => {
+  it('builds no ships in a harbour that cannot reach the enemy', () => {
+    const state = makeGame(
+      ['P~.......', '~~.......'],
+      [{ x: 8, y: 0, type: 'tank', owner: 1 }],
+      [30000, 0],
+    );
+    const board = readBoard(rules, state, DEFAULT_PROFILE);
+    expect(findBuild(board, makePlan(board))).toBeNull();
+  });
+
+  it('builds a battleship that can shell the enemy from open water', () => {
+    const state = makeGame(
+      ['P~~~~~..', '~~~~~~..'],
+      [{ x: 7, y: 0, type: 'tank', owner: 1 }],
+      [30000, 0],
+    );
+    expect(rules.units[build(state).unitType]!.id).toBe('battleship');
+  });
+});
+
 describe('production', () => {
   it('builds capturers while neutral properties are unclaimed', () => {
     const state = makeGame(['R.C.C.C', '.......'], [], [5000, 0]);
