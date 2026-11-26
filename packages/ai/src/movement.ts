@@ -1,4 +1,5 @@
 import {
+  defenceStars,
   isIndirect,
   NO_DAMAGE,
   NO_UNIT,
@@ -253,7 +254,7 @@ function tileScore(
     -(orders.goal[tile]! / Math.max(1, def.movePoints)) * profile.progress[orders.role] * worth;
   const standing = asItWouldStand(board, unit, tile);
   score -= profile.danger[orders.role] * board.caution * dangerAt(board, standing, tile, unit.hp);
-  score += profile.terrainStar * terrain.defence * worth;
+  score += profile.terrainStar * defenceStars(ruleset, state, unit.type, tile) * worth;
   if (state.owner[tile] === board.me) {
     // A building left clear can build, unless this unit has come to it for repairs.
     const repairsHere = orders.role === 'retreat' && terrain.repairs[def.moveType] === 1;
