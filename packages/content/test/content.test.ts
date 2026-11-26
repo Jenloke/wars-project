@@ -6,6 +6,8 @@ import {
   MapRegistry,
   ruleset,
   terrainVisual,
+  TERN_REACH_ASCII,
+  ternReach,
   unitVisual,
   TWIN_FORDS_ASCII,
   twinFords,
@@ -287,5 +289,90 @@ describe('Twin Fords', () => {
     expect(state.activePlayer).toBe(0);
     expect(Object.keys(state.units)).toHaveLength(0);
     expect(state.players.map((p) => p.funds)).toEqual([3000, 0]);
+  });
+});
+
+describe('Tern Reach', () => {
+  const at = (x: number, y: number) => ternReach.tiles[y * ternReach.width + x];
+  const coordsOf = (terrainId: string, owner: number | null) =>
+    ternReach.properties
+      .filter((p) => at(p.x, p.y) === terrainId && p.owner === owner)
+      .map((p) => `${p.x},${p.y}`);
+
+  it('is registered and 20 x 14', () => {
+    expect(maps.get('ternReach')).toEqual(ternReach);
+    expect(ternReach).toMatchObject({ width: 20, height: 14 });
+    expect(TERN_REACH_ASCII.trim().split('\n')).toHaveLength(14);
+  });
+
+  it('gives each player an HQ, two bases, a port and an airport', () => {
+    expect(coordsOf('hq', 0)).toEqual(['1,1']);
+    expect(coordsOf('base', 0)).toEqual(['2,1', '1,2']);
+    expect(coordsOf('airport', 0)).toEqual(['1,3']);
+    expect(coordsOf('port', 0)).toEqual(['8,3']);
+    expect(coordsOf('hq', 1)).toEqual(['18,12']);
+    expect(coordsOf('base', 1)).toEqual(['18,11', '17,12']);
+    expect(coordsOf('airport', 1)).toEqual(['18,10']);
+    expect(coordsOf('port', 1)).toEqual(['11,10']);
+  });
+
+  it('has two neutral airports on the central island and ten neutral cities', () => {
+    expect(coordsOf('airport', null)).toEqual(['10,6', '9,7']);
+    expect(coordsOf('city', null)).toEqual([
+      '8,2',
+      '4,3',
+      '16,3',
+      '2,5',
+      '9,6',
+      '10,7',
+      '17,8',
+      '3,10',
+      '15,10',
+      '11,11',
+    ]);
+  });
+
+  it('has the documented terrain totals', () => {
+    const counts: Record<string, number> = {};
+    for (const id of ternReach.tiles) counts[id] = (counts[id] ?? 0) + 1;
+    expect(counts).toEqual({
+      sea: 168,
+      plains: 36,
+      road: 20,
+      shoal: 14,
+      forest: 10,
+      reef: 6,
+      mountain: 2,
+      bridge: 2,
+      city: 10,
+      base: 4,
+      hq: 2,
+      port: 2,
+      airport: 4,
+    });
+    expect(ternReach.properties).toHaveLength(22);
+    expect(at(7, 6)).toBe('bridge');
+    expect(at(12, 7)).toBe('bridge');
+  });
+
+  it('is rotationally symmetric, so neither side has a positional edge', () => {
+    const { width, height, tiles } = ternReach;
+    for (let i = 0; i < tiles.length; i++) expect(tiles[tiles.length - 1 - i]).toBe(tiles[i]);
+    for (const property of ternReach.properties) {
+      const mirror = ternReach.properties.find(
+        (p) => p.x === width - 1 - property.x && p.y === height - 1 - property.y,
+      )!;
+      expect(mirror.owner).toBe(property.owner === null ? null : 1 - property.owner);
+    }
+  });
+
+  it('puts each port on open water', () => {
+    for (const [x, y] of [
+      [8, 3],
+      [11, 10],
+    ] as const) {
+      const neighbours = [at(x + 1, y), at(x - 1, y), at(x, y + 1), at(x, y - 1)];
+      expect(neighbours).toContain('sea');
+    }
   });
 });
