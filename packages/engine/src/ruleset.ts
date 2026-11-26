@@ -86,23 +86,96 @@ export interface RawDamageEntry {
   readonly secondary?: number | undefined;
 }
 
-export type ModifierHook = 'attack' | 'defence' | 'movement' | 'cost' | 'powerGain';
-
 /**
- * A commander effect as data. `attack`, `defence`, `cost` and `powerGain` are
- * percentages added to a base of 100. `movement` is added move points.
+ * What a commander modifier changes, and how its value is read:
+ *
+ * - `attack`, `defence`, `cost`, `capture`: percentage points added to a base of
+ *   100 (firepower, damage taken, build and repair price, capture speed).
+ * - `movement`: move points added.
+ * - `range`: added to the maximum range of indirect units. Direct units are
+ *   unaffected, and the maximum never drops below the minimum.
+ * - `repair`: internal HP added to what an owned property repairs each turn,
+ *   still paid for.
+ * - `regen`: internal HP every unit recovers for free at the start of its
+ *   owner's turn, wherever it is. Negative values wear units down, never below 1.
+ * - `income`: percentage points added to a base of 100 of the funds each
+ *   property pays. Applies to the player, so it takes no `units`.
  */
+export type ModifierHook =
+  'attack' | 'defence' | 'movement' | 'cost' | 'range' | 'capture' | 'repair' | 'regen' | 'income';
+
+/** A commander effect as data. */
 export interface RawModifier {
   readonly hook: ModifierHook;
-  /** Unit IDs affected. Omit for all units. Ignored by `powerGain`. */
-  readonly units?: readonly string[] | undefined;
+  /** Units affected. Omit for all units. Ignored by `income`. */
+  readonly units?: readonly UnitSelector[] | undefined;
   readonly value: number;
 }
+
+/** Something a power does once, the moment it is activated, to its player's side. */
+export type RawPowerEffect =
+  /** Every unit it names regains `hp` internal HP, for free, up to full. */
+  | {
+      readonly kind: 'heal';
+      readonly hp: number;
+      readonly units?: readonly UnitSelector[] | undefined;
+    }
+  /** Every unit it names is refilled with fuel and ammo. */
+  | { readonly kind: 'resupply'; readonly units?: readonly UnitSelector[] | undefined }
+  /** Pays `incomePercent` percent of a day's income at once. */
+  | { readonly kind: 'funds'; readonly incomePercent: number };
+
+/**
+ * A commander's power. Activated by its player once the meter holds `cost`
+ * points; its modifiers then apply on top of the innate ones until the start of
+ * that player's next turn, so defensive powers hold through the enemy's turn.
+ */
+export interface RawPower {
+  readonly name: string;
+  /** Meter points spent to activate it. */
+  readonly cost: number;
+  readonly modifiers: readonly RawModifier[];
+  readonly effects?: readonly RawPowerEffect[] | undefined;
+}
+
+/**
+ * How fast a commander's power meter fills, in meter points. The funds value of
+ * damage is the damaged unit's cost times the share of its HP lost.
+ */
+export interface RawCharge {
+  /** Percent of the funds value of damage this player's units deal. */
+  readonly damageDealt: number;
+  /** Percent of the funds value of damage this player's units take. */
+  readonly damageTaken: number;
+  /** Percent of the cost of each enemy unit this player's units destroy, on top of the damage. */
+  readonly kills: number;
+  /** Points for each property this player captures. */
+  readonly captures: number;
+  /** Percent of the funds this player collects at the start of each turn. */
+  readonly income: number;
+}
+
+/**
+ * Charge rates for a commander that names none: the meter rule of the first
+ * builds, so games saved before commanders had their own rates replay the same.
+ */
+export const DEFAULT_CHARGE: RawCharge = {
+  damageDealt: 50,
+  damageTaken: 100,
+  kills: 0,
+  captures: 0,
+  income: 0,
+};
 
 export interface RawCommanderDef {
   readonly id: string;
   readonly name: string;
+  /** Innate modifiers, always in effect. */
   readonly modifiers: readonly RawModifier[];
+  /** How the meter fills. Defaults to `DEFAULT_CHARGE`. */
+  readonly charge?: RawCharge | undefined;
+  /** Commanders without a power have nothing to activate. */
+  readonly power?: RawPower | undefined;
 }
 
 export interface RuleConstants {
@@ -165,9 +238,8 @@ export interface CompiledTerrain {
   readonly builds: readonly number[];
 }
 
-export interface CompiledCommander {
-  readonly id: string;
-  readonly name: string;
+/** A set of commander modifiers resolved to per-unit-type tables. */
+export interface CompiledModifiers {
   /** Per unit type: attack percent (100 = unmodified). */
   readonly attack: Int16Array;
   /** Per unit type: defence percent (100 = unmodified). */
@@ -176,7 +248,42 @@ export interface CompiledCommander {
   readonly movement: Int8Array;
   /** Per unit type: cost percent (100 = unmodified). */
   readonly cost: Int16Array;
-  readonly powerGain: number;
+  /** Per unit type: extra maximum range. Always 0 for direct units. */
+  readonly range: Int8Array;
+  /** Per unit type: capture speed percent (100 = unmodified). */
+  readonly capture: Int16Array;
+  /** Per unit type: extra internal HP repaired on owned properties. */
+  readonly repair: Int16Array;
+  /** Per unit type: internal HP recovered for free at the start of each turn. */
+  readonly regen: Int16Array;
+  /** Income percent (100 = unmodified). */
+  readonly income: number;
+}
+
+export type CompiledPowerEffect =
+  | {
+      readonly kind: 'heal';
+      readonly hp: number;
+      /** Per unit type: 1 if healed. */ readonly units: Uint8Array;
+    }
+  | { readonly kind: 'resupply'; /** Per unit type: 1 if resupplied. */ readonly units: Uint8Array }
+  | { readonly kind: 'funds'; readonly incomePercent: number };
+
+export interface CompiledPower {
+  readonly name: string;
+  readonly cost: number;
+  readonly effects: readonly CompiledPowerEffect[];
+}
+
+export interface CompiledCommander {
+  readonly id: string;
+  readonly name: string;
+  /** Innate modifiers. */
+  readonly passive: CompiledModifiers;
+  /** Innate and power modifiers together, while the power is active. */
+  readonly powered: CompiledModifiers;
+  readonly charge: RawCharge;
+  readonly power: CompiledPower | null;
 }
 
 export interface CompiledRuleset {
@@ -215,7 +322,17 @@ function lookup(index: ReadonlyMap<string, number>, id: string, kind: string): n
   return value;
 }
 
+/**
+ * Classes every unit belongs to by its weapons, so rules can name them without
+ * tagging each unit: `direct` fires at adjacent tiles only, `indirect` reaches
+ * further (and so cannot move and fire). Unarmed units are neither.
+ */
+export const DIRECT_UNITS: UnitSelector = 'direct';
+export const INDIRECT_UNITS: UnitSelector = 'indirect';
+
 function matches(selector: UnitSelector, unit: RawUnitDef): boolean {
+  if (selector === DIRECT_UNITS) return unit.maxRange === 1;
+  if (selector === INDIRECT_UNITS) return unit.maxRange > 1;
   return selector === unit.id || selector === unit.moveType || (unit.tags ?? []).includes(selector);
 }
 
@@ -241,40 +358,106 @@ export function selectUnits(
   return selected;
 }
 
-function compileCommander(
-  raw: RawCommanderDef,
-  unitCount: number,
-  unitIndex: ReadonlyMap<string, number>,
-): CompiledCommander {
-  const attack = new Int16Array(unitCount).fill(100);
-  const defence = new Int16Array(unitCount).fill(100);
-  const cost = new Int16Array(unitCount).fill(100);
-  const movement = new Int8Array(unitCount);
-  let powerGain = 100;
+type UnitTableHook = Exclude<ModifierHook, 'income'>;
+type MutableModifiers = { -readonly [K in keyof CompiledModifiers]: CompiledModifiers[K] };
 
-  for (const modifier of raw.modifiers) {
-    if (modifier.hook === 'powerGain') {
-      powerGain += modifier.value;
+function neutralModifiers(unitCount: number): MutableModifiers {
+  return {
+    attack: new Int16Array(unitCount).fill(100),
+    defence: new Int16Array(unitCount).fill(100),
+    movement: new Int8Array(unitCount),
+    cost: new Int16Array(unitCount).fill(100),
+    range: new Int8Array(unitCount),
+    capture: new Int16Array(unitCount).fill(100),
+    repair: new Int16Array(unitCount),
+    regen: new Int16Array(unitCount),
+    income: 100,
+  };
+}
+
+/**
+ * Adds `modifiers` on top of `base` (a fresh copy, so `base` is left alone).
+ * Selectors that match no unit throw, as they can only be typos.
+ */
+function applyModifiers(
+  units: readonly RawUnitDef[],
+  base: CompiledModifiers,
+  modifiers: readonly RawModifier[],
+  context: string,
+): CompiledModifiers {
+  const result: MutableModifiers = {
+    attack: base.attack.slice(),
+    defence: base.defence.slice(),
+    movement: base.movement.slice(),
+    cost: base.cost.slice(),
+    range: base.range.slice(),
+    capture: base.capture.slice(),
+    repair: base.repair.slice(),
+    regen: base.regen.slice(),
+    income: base.income,
+  };
+  for (const modifier of modifiers) {
+    if (modifier.hook === 'income') {
+      result.income += modifier.value;
       continue;
     }
-    const table =
-      modifier.hook === 'attack'
-        ? attack
-        : modifier.hook === 'defence'
-          ? defence
-          : modifier.hook === 'cost'
-            ? cost
-            : movement;
-    if (modifier.units === undefined) {
-      for (let u = 0; u < unitCount; u++) table[u] = (table[u] as number) + modifier.value;
-    } else {
-      for (const unitId of modifier.units) {
-        const u = lookup(unitIndex, unitId, 'unit');
-        table[u] = (table[u] as number) + modifier.value;
-      }
+    const hook: UnitTableHook = modifier.hook;
+    const table = result[hook];
+    const selected =
+      modifier.units === undefined ? null : selectUnits(units, modifier.units, context);
+    for (let u = 0; u < units.length; u++) {
+      if (selected !== null && selected[u] !== 1) continue;
+      // Range only stretches indirect fire: a direct unit firing from two tiles
+      // away would break the rule that only adjacent units trade blows.
+      if (hook === 'range' && !matches(INDIRECT_UNITS, units[u]!)) continue;
+      table[u] = (table[u] as number) + modifier.value;
     }
   }
-  return { id: raw.id, name: raw.name, attack, defence, movement, cost, powerGain };
+  return result;
+}
+
+function selectedOrAll(
+  units: readonly RawUnitDef[],
+  selectors: readonly UnitSelector[] | undefined,
+  context: string,
+): Uint8Array {
+  return selectors === undefined
+    ? new Uint8Array(units.length).fill(1)
+    : selectUnits(units, selectors, context);
+}
+
+function compilePower(raw: RawPower, units: readonly RawUnitDef[], context: string): CompiledPower {
+  if (!(raw.cost > 0)) throw new Error(`${context}: power cost must be positive`);
+  const effects = (raw.effects ?? []).map((effect): CompiledPowerEffect => {
+    switch (effect.kind) {
+      case 'heal':
+        return { kind: 'heal', hp: effect.hp, units: selectedOrAll(units, effect.units, context) };
+      case 'resupply':
+        return { kind: 'resupply', units: selectedOrAll(units, effect.units, context) };
+      case 'funds':
+        return { kind: 'funds', incomePercent: effect.incomePercent };
+      default: {
+        const unknown: never = effect;
+        throw new Error(`${context}: unknown power effect ${JSON.stringify(unknown)}`);
+      }
+    }
+  });
+  return { name: raw.name, cost: raw.cost, effects };
+}
+
+function compileCommander(raw: RawCommanderDef, units: readonly RawUnitDef[]): CompiledCommander {
+  const context = `Commander "${raw.id}"`;
+  const passive = applyModifiers(units, neutralModifiers(units.length), raw.modifiers, context);
+  const charge = raw.charge ?? DEFAULT_CHARGE;
+  for (const [source, rate] of Object.entries(charge)) {
+    if (!(rate >= 0)) throw new Error(`${context}: charge rate "${source}" must not be negative`);
+  }
+  if (raw.power === undefined) {
+    return { id: raw.id, name: raw.name, passive, powered: passive, charge, power: null };
+  }
+  const powered = applyModifiers(units, passive, raw.power.modifiers, `${context} power`);
+  const power = compilePower(raw.power, units, `${context} power`);
+  return { id: raw.id, name: raw.name, passive, powered, charge, power };
 }
 
 /** Interns a raw ruleset into lookup tables. Throws on any dangling reference. */
@@ -370,7 +553,7 @@ export function compileRuleset(raw: RawRuleset): CompiledRuleset {
     moveTypes: raw.moveTypes,
     units,
     terrain,
-    commanders: raw.commanders.map((c) => compileCommander(c, unitCount, unitIndex)),
+    commanders: raw.commanders.map((c) => compileCommander(c, raw.units)),
     moveCost,
     primaryDamage,
     secondaryDamage,

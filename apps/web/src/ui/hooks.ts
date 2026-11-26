@@ -1,6 +1,13 @@
 import type { GameState } from '@tactics/engine';
 import { useEffect, useSyncExternalStore } from 'react';
-import { cancel, confirm, openMapMenu, stepCursor, zoomBy } from '../input/interaction';
+import {
+  activatePower,
+  cancel,
+  confirm,
+  openMapMenu,
+  stepCursor,
+  zoomBy,
+} from '../input/interaction';
 import { session } from '../session/game';
 import { isMenuMode, useUiStore } from '../store/uiStore';
 
@@ -47,6 +54,8 @@ export function useKeyboardControls(): void {
         confirm();
       } else if (key === 'e') {
         openMapMenu();
+      } else if (key === 'p') {
+        activatePower();
       } else if (key === '+' || key === '=') {
         zoomBy(1);
       } else if (key === '-') {

@@ -19,6 +19,8 @@ export interface SlotSummary {
   readonly activePlayer: number;
   /** Winning player, or null while the game is in progress. */
   readonly winner: number | null;
+  /** Commander ID of each side, '' for the default commander. Empty if unknown. */
+  readonly commanders: readonly string[];
   readonly actionCount: number;
   readonly savedAt: string;
 }
@@ -56,6 +58,11 @@ function stringOr(value: unknown, fallback: string): string {
   return typeof value === 'string' ? value : fallback;
 }
 
+/** Commander IDs from a list of setup players or stored IDs, without trusting either. */
+function commanderIds(players: unknown, read: (entry: unknown) => unknown): string[] {
+  return Array.isArray(players) ? players.map((entry) => stringOr(read(entry), '')) : [];
+}
+
 /**
  * Reads display fields from a save, or from any JSON that might be one, without
  * trusting its shape. Loading is what validates a save; the list only shows it.
@@ -70,6 +77,9 @@ export function summarize(slot: SlotId, document: unknown): SlotSummary {
     day: numberOr(field(state, 'day'), 0),
     activePlayer: numberOr(field(state, 'activePlayer'), 0),
     winner: field(status, 'kind') === 'won' ? numberOr(field(status, 'winner'), 0) : null,
+    commanders: commanderIds(field(field(document, 'setup'), 'players'), (player) =>
+      field(player, 'commander'),
+    ),
     actionCount: Array.isArray(actions) ? actions.length : 0,
     savedAt: stringOr(field(document, 'savedAt'), ''),
   };
@@ -84,6 +94,7 @@ function summaryFromIndex(slot: SlotId, entry: unknown): SlotSummary {
     day: numberOr(field(entry, 'day'), 0),
     activePlayer: numberOr(field(entry, 'activePlayer'), 0),
     winner: typeof winner === 'number' ? winner : null,
+    commanders: commanderIds(field(entry, 'commanders'), (id) => id),
     actionCount: numberOr(field(entry, 'actionCount'), 0),
     savedAt: stringOr(field(entry, 'savedAt'), ''),
   };

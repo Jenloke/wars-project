@@ -5,7 +5,7 @@ import { useKeyboardControls } from './ui/hooks';
 import { InfoPanel } from './ui/InfoPanel';
 import { Menus } from './ui/Menus';
 import { NewGameDialog } from './ui/NewGameDialog';
-import { GameOver, TurnBanner } from './ui/Overlays';
+import { GameOver, PowerBanner, TurnBanner } from './ui/Overlays';
 import { TopBar } from './ui/TopBar';
 
 export function App() {
@@ -19,6 +19,7 @@ export function App() {
         <GameCanvas />
         <Menus />
         <TurnBanner />
+        <PowerBanner />
       </main>
       <InfoPanel />
       <GameOver />

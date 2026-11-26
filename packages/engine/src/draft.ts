@@ -45,6 +45,17 @@ function writableUnits(draft: Draft): Record<UnitId, Unit> {
   return draft.state.units as Record<UnitId, Unit>;
 }
 
+/** Unit IDs owned by `player`, carried ones included, in ascending (deterministic) order. */
+export function unitIdsOf(draft: Draft, player: PlayerIndex): UnitId[] {
+  const ids: UnitId[] = [];
+  const units = draft.state.units;
+  for (const key in units) {
+    const unit = units[key as unknown as UnitId]!;
+    if (unit.owner === player) ids.push(unit.id);
+  }
+  return ids;
+}
+
 export function patchUnit(draft: Draft, id: UnitId, patch: Partial<Unit>): Unit {
   const units = writableUnits(draft);
   const next: Unit = { ...units[id]!, ...patch };

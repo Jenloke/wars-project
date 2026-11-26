@@ -34,6 +34,23 @@ function addDivedFlag(save: SaveDocument): SaveDocument {
 }
 
 /**
+ * Format 3 gave every player a `powerActive` flag and moved the state to schema 3.
+ * No power could be activated before, so every flag starts false. It goes last,
+ * as it does in new players, so the migrated snapshot still matches a replay.
+ */
+function addPowerFlag(save: SaveDocument): SaveDocument {
+  const state = save['state'];
+  if (!isDocument(state)) return { ...save, version: 3 };
+  let players = state['players'];
+  if (Array.isArray(players)) {
+    players = players.map((player: unknown) =>
+      isDocument(player) ? { ...player, powerActive: false } : player,
+    );
+  }
+  return { ...save, version: 3, state: { ...state, schemaVersion: 3, players } };
+}
+
+/**
  * Upgrade steps, keyed by the version they upgrade *from*. To change the format:
  *
  *   1. bump `SAVE_VERSION` to N + 1,
@@ -44,6 +61,7 @@ function addDivedFlag(save: SaveDocument): SaveDocument {
  */
 export const SAVE_MIGRATIONS: SaveMigrations = {
   1: addDivedFlag,
+  2: addPowerFlag,
 };
 
 /**

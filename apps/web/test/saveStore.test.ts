@@ -39,6 +39,7 @@ describe('SaveStore', () => {
       day: 1,
       activePlayer: 0,
       winner: null,
+      commanders: ['', ''],
       actionCount: 0,
       savedAt: SAVED_AT,
     });
@@ -131,8 +132,28 @@ describe('summarize', () => {
       day: 0,
       activePlayer: 0,
       winner: null,
+      commanders: [],
       actionCount: 0,
       savedAt: '',
     });
+  });
+
+  it('names the commander of each side, and keeps them through the index', () => {
+    const save = newSave();
+    const led = {
+      ...save,
+      setup: { ...save.setup, players: [{ controller: 'local', commander: 'odile' }, 7] },
+    };
+    expect(summarize('auto', led).commanders).toEqual(['odile', '']);
+
+    const storage = new MemoryStorage();
+    new SaveStore(storage).write('slot1', {
+      ...save,
+      setup: {
+        ...save.setup,
+        players: [{ controller: 'local', commander: 'pip' }, { controller: 'ai' }],
+      },
+    });
+    expect(new SaveStore(storage).list()[0]!.commanders).toEqual(['pip', '']);
   });
 });

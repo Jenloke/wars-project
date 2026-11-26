@@ -1,3 +1,4 @@
+import { modifiersOf } from './commanders';
 import { manhattan } from './grid';
 import { NO_DAMAGE, type CompiledRuleset } from './ruleset';
 import { NO_UNIT, type GameState, type TileIndex, type Unit, type UnitId } from './types';
@@ -93,10 +94,8 @@ export function damageBetween(
 ): number {
   const base = baseDamageOn(ruleset, attacker, defender);
   if (base === NO_DAMAGE) return NO_DAMAGE;
-  const attackPercent =
-    ruleset.commanders[state.players[attacker.owner]!.commander]!.attack[attacker.type]!;
-  const defencePercent =
-    ruleset.commanders[state.players[defender.owner]!.commander]!.defence[defender.type]!;
+  const attackPercent = modifiersOf(ruleset, state, attacker.owner).attack[attacker.type]!;
+  const defencePercent = modifiersOf(ruleset, state, defender.owner).defence[defender.type]!;
   const stars = defenceStars(ruleset, state, defender.type, defenderTile);
   return computeDamage(
     ruleset,

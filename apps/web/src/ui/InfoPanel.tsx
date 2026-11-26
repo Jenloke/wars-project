@@ -1,7 +1,8 @@
-import { factions } from '@tactics/content';
 import {
   hpPips,
   maxPips,
+  maxRangeOf,
+  movePointsOf,
   NO_OWNER,
   NO_TILE,
   NO_UNIT,
@@ -9,18 +10,32 @@ import {
   type GameState,
   type TileIndex,
 } from '@tactics/engine';
+import { armiesOf } from '../session/armies';
 import { ruleset } from '../session/game';
 import { useUiStore } from '../store/uiStore';
 import { useGameState } from './hooks';
+import { Portrait } from './Portrait';
+import { PowerGauge } from './PowerGauge';
 
 const MAX_STARS = 4;
 
-function ownerName(owner: number): string {
-  return owner === NO_OWNER ? 'Neutral' : (factions[owner]?.name ?? `Player ${owner + 1}`);
+function ownerName(state: GameState, owner: number): string {
+  if (owner === NO_OWNER) return 'Neutral';
+  return armiesOf(ruleset, state)[owner]?.name ?? `Player ${owner + 1}`;
 }
 
-function ownerColor(owner: number): string | undefined {
-  return owner === NO_OWNER ? undefined : factions[owner]?.color;
+function ownerColor(state: GameState, owner: number): string | undefined {
+  return owner === NO_OWNER ? undefined : armiesOf(ruleset, state)[owner]?.color;
+}
+
+/** A stat changed by a commander, with the unmodified value beside it. */
+function Modified({ value, base }: { value: string; base: string }) {
+  if (value === base) return <>{value}</>;
+  return (
+    <>
+      {value} <span className="muted">({base})</span>
+    </>
+  );
 }
 
 function TerrainInfo({ state, tile }: { state: GameState; tile: TileIndex }) {
@@ -39,7 +54,7 @@ function TerrainInfo({ state, tile }: { state: GameState; tile: TileIndex }) {
         {terrain.isProperty && (
           <>
             <dt>Owner</dt>
-            <dd style={{ color: ownerColor(owner) }}>{ownerName(owner)}</dd>
+            <dd style={{ color: ownerColor(state, owner) }}>{ownerName(state, owner)}</dd>
             <dt>Capture</dt>
             <dd>
               {capture} / {ruleset.rules.capturePoints}
@@ -63,17 +78,24 @@ function UnitInfo({ state, tile }: { state: GameState; tile: TileIndex }) {
   }
   const def = ruleset.units[unit.type]!;
   const dailyFuel = unit.dived ? def.divedFuelPerDay : def.fuelPerDay;
+  const move = movePointsOf(ruleset, state, unit.owner, unit.type);
+  const maxRange = maxRangeOf(ruleset, state, unit.owner, unit.type);
+  const range = (max: number) => (def.minRange === max ? `${max}` : `${def.minRange}-${max}`);
   const status = [
     unit.dived && 'Dived',
     unit.moved && unit.owner === state.activePlayer && 'Done',
   ].filter((part) => part !== false);
   return (
     <section className="info-card">
-      <h2 style={{ color: ownerColor(unit.owner) }}>{def.name}</h2>
+      <h2 style={{ color: ownerColor(state, unit.owner) }}>{def.name}</h2>
       <dl>
         <dt>HP</dt>
         <dd>
           {hpPips(ruleset, unit.hp)} / {maxPips(ruleset)}
+        </dd>
+        <dt>Move</dt>
+        <dd>
+          <Modified value={String(move)} base={String(def.movePoints)} />
         </dd>
         <dt>Fuel</dt>
         <dd>
@@ -92,7 +114,7 @@ function UnitInfo({ state, tile }: { state: GameState; tile: TileIndex }) {
           <>
             <dt>Range</dt>
             <dd>
-              {def.minRange === def.maxRange ? def.minRange : `${def.minRange}-${def.maxRange}`}
+              <Modified value={range(maxRange)} base={range(def.maxRange)} />
             </dd>
           </>
         )}
@@ -157,17 +179,54 @@ function DamagePreview({ state }: { state: GameState }) {
   );
 }
 
-/** Terrain and unit details for the tile under the cursor. */
+/** Every side still in the game: its commander and how charged their power is. */
+function ArmiesInfo({ state }: { state: GameState }) {
+  const armies = armiesOf(ruleset, state);
+  return (
+    <section className="info-card armies-card" aria-label="Commanders">
+      <ul>
+        {armies.map((army) => {
+          const side = state.players[army.seat]!;
+          if (!side.alive) return null;
+          return (
+            <li
+              key={army.seat}
+              className={army.seat === state.activePlayer ? 'army active' : 'army'}
+              title={`${army.commanderName}, ${army.name}`}
+            >
+              <Portrait sprite={army.portrait} ramp={army.ramp} size={32} />
+              <span className="army-text">
+                <span className="army-name" style={{ color: army.color }}>
+                  {army.commanderName}
+                </span>
+                <PowerGauge state={state} player={army.seat} />
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+/** Terrain and unit details for the tile under the cursor, and every side's commander. */
 export function InfoPanel() {
   const state = useGameState();
   const cursor = useUiStore((ui) => ui.cursor);
   const mode = useUiStore((ui) => ui.mode);
-  if (cursor === NO_TILE || cursor >= state.terrain.length) return <aside className="info-panel" />;
+  if (cursor === NO_TILE || cursor >= state.terrain.length) {
+    return (
+      <aside className="info-panel">
+        <ArmiesInfo state={state} />
+      </aside>
+    );
+  }
   return (
     <aside className="info-panel">
       {mode === 'targeting' && <DamagePreview state={state} />}
       <UnitInfo state={state} tile={cursor} />
       <TerrainInfo state={state} tile={cursor} />
+      <ArmiesInfo state={state} />
     </aside>
   );
 }

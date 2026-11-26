@@ -94,6 +94,8 @@ export interface AiProfile {
   readonly captureNeedDays: number;
   /** Share of its engagements with direct units an indirect unit gets to start. */
   readonly indirectInitiative: number;
+  /** Extra share of those engagements per tile of range its commander adds. */
+  readonly rangeInitiative: number;
   /** Least share of its HP a unit is assumed to lose per engagement, which caps its lifetime. */
   readonly minAttrition: number;
   /** Cost, as a share of the price, of a unit type for each share of the army it already is. */
@@ -157,6 +159,7 @@ export const DEFAULT_PROFILE: AiProfile = {
   maxCapturers: 6,
   captureNeedDays: 3,
   indirectInitiative: 0.5,
+  rangeInitiative: 0.1,
   minAttrition: 0.05,
   diversity: 0.5,
 };

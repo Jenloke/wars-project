@@ -12,6 +12,21 @@ maps.register(ternReach);
 
 export const DEFAULT_MAP_ID = twinFords.id;
 
+export {
+  commanderProfile,
+  commanderProfiles,
+  type CommanderProfile,
+  type TeamColors,
+} from './commanders';
+export {
+  describeCommander,
+  REFERENCE_CHARGE,
+  type ChargeLine,
+  type ChargePace,
+  type ChargeSource,
+  type CommanderSummary,
+  type PowerSummary,
+} from './commanderText';
 export { factions, type Faction } from './factions';
 export { MapRegistry, validateMap } from './maps/registry';
 export {

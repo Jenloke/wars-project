@@ -1,5 +1,6 @@
 import {
   areAdjacent,
+  canActivatePower,
   canStopAt,
   computeMoveField,
   createMoveField,
@@ -326,6 +327,14 @@ export function closeDialog(dialog: DialogKind): void {
 
 export function endTurn(): void {
   if (canCommand()) submit({ type: 'EndTurn' });
+}
+
+/** Activates the active player's commander power, from the map or its menu. */
+export function activatePower(): void {
+  if (!canCommand()) return;
+  const mode = useUiStore.getState().mode;
+  if (mode !== 'idle' && mode !== 'mapMenu') return;
+  if (canActivatePower(ruleset, session.getState())) submit({ type: 'ActivatePower' });
 }
 
 export function resign(): void {

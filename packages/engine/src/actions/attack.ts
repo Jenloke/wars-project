@@ -1,11 +1,13 @@
 import { canCounter, damageBetween, usesPrimaryWeapon } from '../combat';
-import { destroyUnit, patchPlayer, patchUnit, relocateUnit, type Draft } from '../draft';
+import { commanderOf } from '../commanders';
+import { destroyUnit, patchUnit, relocateUnit, type Draft } from '../draft';
 import { manhattan } from '../grid';
 import { NO_DAMAGE, type CompiledRuleset } from '../ruleset';
 import { rngAdvance, rngInt } from '../rng';
 import { NO_UNIT, type Action, type TileIndex, type Unit } from '../types';
-import { isIndirect, unitCost } from '../units';
+import { isIndirect, maxRangeOf, unitCost } from '../units';
 import { beginUnitAction, type ActionError } from './common';
+import { chargeMeter, chargeShare } from './power';
 
 function rollLuck(ruleset: CompiledRuleset, draft: Draft): number {
   const seed = rngAdvance(draft.state.rng);
@@ -13,29 +15,26 @@ function rollLuck(ruleset: CompiledRuleset, draft: Draft): number {
   return rngInt(seed, ruleset.rules.luckMax + 1);
 }
 
-/** Charges both power meters from the funds value of the damage dealt. */
+/**
+ * Charges both power meters from the funds value of the damage dealt, at each
+ * commander's rates, and the attacker's for a kill on top.
+ */
 function chargePower(
   ruleset: CompiledRuleset,
   draft: Draft,
   attacker: Unit,
   defender: Unit,
   damage: number,
+  destroyed: boolean,
 ): void {
   const state = draft.state;
-  const value = Math.floor(
-    (unitCost(ruleset, state, defender.owner, defender.type) * damage) / ruleset.rules.maxHp,
-  );
-  if (value === 0) return;
-  const defenderSide = state.players[defender.owner]!;
-  const defenderGain = ruleset.commanders[defenderSide.commander]!.powerGain;
-  patchPlayer(draft, defender.owner, {
-    power: defenderSide.power + Math.floor((value * defenderGain) / 100),
-  });
-  const attackerSide = state.players[attacker.owner]!;
-  const attackerGain = ruleset.commanders[attackerSide.commander]!.powerGain;
-  patchPlayer(draft, attacker.owner, {
-    power: attackerSide.power + Math.floor((value * attackerGain) / 200),
-  });
+  const cost = unitCost(ruleset, state, defender.owner, defender.type);
+  const value = Math.floor((cost * damage) / ruleset.rules.maxHp);
+  const taken = commanderOf(ruleset, state, defender.owner).charge;
+  const dealt = commanderOf(ruleset, state, attacker.owner).charge;
+  chargeMeter(ruleset, draft, defender.owner, chargeShare(value, taken.damageTaken));
+  chargeMeter(ruleset, draft, attacker.owner, chargeShare(value, dealt.damageDealt));
+  if (destroyed) chargeMeter(ruleset, draft, attacker.owner, chargeShare(cost, dealt.kills));
 }
 
 /**
@@ -76,9 +75,9 @@ function strike(
     damage,
     isCounter,
   });
-  chargePower(ruleset, draft, attacker, defender, damage);
-
   const remaining = defender.hp - damage;
+  chargePower(ruleset, draft, attacker, defender, damage, remaining <= 0);
+
   if (remaining <= 0) {
     destroyUnit(ruleset, draft, defender.id, 'combat');
     return 0;
@@ -111,7 +110,12 @@ export function applyAttack(
   if (defender.owner === ctx.unit.owner) return 'Cannot attack your own unit';
 
   const distance = manhattan(ctx.destination, target, state.width);
-  if (distance < def.minRange || distance > def.maxRange) return 'Target is out of range';
+  if (
+    distance < def.minRange ||
+    distance > maxRangeOf(ruleset, state, ctx.unit.owner, ctx.unit.type)
+  ) {
+    return 'Target is out of range';
+  }
   if (
     damageBetween(ruleset, state, ctx.unit, ctx.unit.hp, defender, defender.hp, target, 0) ===
     NO_DAMAGE

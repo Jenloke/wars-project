@@ -114,6 +114,59 @@ button.primary {
   border-radius: 3px;
 }
 
+.army-name {
+  font-weight: 600;
+}
+
+/* Power meter: fills in the army's colour, and glows once the power is ready. */
+.power-gauge {
+  position: relative;
+  display: inline-block;
+  width: 84px;
+  height: 10px;
+  overflow: hidden;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.power-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  transition: width 0.3s ease-out;
+}
+
+.power-gauge.full {
+  border-color: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+
+.power-active {
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid;
+  border-radius: 999px;
+  animation: power-pulse 1.4s ease-in-out infinite alternate;
+}
+
+.power-button {
+  min-height: 30px;
+  padding: 2px 10px;
+  font-weight: 700;
+  border-width: 2px;
+}
+
+@keyframes power-pulse {
+  from {
+    opacity: 0.65;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .hint {
   flex: 1;
   margin: 0;
@@ -204,6 +257,39 @@ button.primary {
   border-color: var(--danger);
 }
 
+.armies-card ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.army {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.75;
+}
+
+.army.active {
+  opacity: 1;
+}
+
+.army-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.army-text .army-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .menu {
   position: absolute;
   z-index: 2;
@@ -268,6 +354,46 @@ button.primary {
   color: var(--danger);
 }
 
+.power-banner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 24px 12px 12px;
+  background: var(--panel);
+  border: 3px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 50%);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: power-banner 2s ease-out forwards;
+}
+
+.power-banner-name {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+@keyframes power-banner {
+  0% {
+    opacity: 0;
+    transform: translate(-30%, -50%);
+  }
+  15%,
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-70%, -50%);
+  }
+}
+
 @keyframes banner {
   0% {
     opacity: 0;
@@ -303,6 +429,10 @@ button.primary {
 
 .game-over-card h1 {
   margin: 0 0 8px;
+}
+
+.game-over-card .portrait {
+  margin: 0 auto 12px;
 }
 
 .game-over-actions {
@@ -513,6 +643,174 @@ button.primary {
   outline-offset: -4px;
 }
 
+/* Commander portraits are pixel art: keep their hard edges at any size. */
+.portrait {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 6px;
+  image-rendering: pixelated;
+}
+
+/* Commander selection, inside the new game dialog. */
+.new-game-dialog {
+  width: min(760px, calc(100vw - 32px));
+}
+
+.seat.editing {
+  background: var(--panel);
+}
+
+.seat-commander {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 2px 6px 2px 2px;
+  text-align: left;
+  background: transparent;
+  border-color: transparent;
+}
+
+.seat-commander[aria-pressed='true'] {
+  border-color: var(--border);
+}
+
+.seat-names {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.seat-names > * {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roster {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.roster-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.roster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.roster-choice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px;
+  border-width: 2px;
+}
+
+.roster-choice[aria-checked='true'] {
+  background: var(--panel);
+}
+
+.roster-choice .badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: var(--panel);
+}
+
+.roster-name {
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.commander-details {
+  padding: 12px 14px;
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 10px;
+}
+
+.commander-details header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.commander-details header p,
+.commander-bio {
+  margin: 2px 0 0;
+}
+
+.commander-bio {
+  margin-top: 8px;
+}
+
+.commander-abilities {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 4px 18px;
+  margin-top: 8px;
+}
+
+.commander-abilities h4 {
+  margin: 6px 0 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.commander-abilities h4 .muted {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.commander-abilities ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.commander-abilities p {
+  margin: 0;
+}
+
+.charge-list {
+  list-style: none;
+  padding-left: 0 !important;
+}
+
+.charge-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.charge-list .pace-none {
+  color: var(--muted);
+}
+
+.pace {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.pace-pip {
+  width: 14px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 2px;
+}
+
 .badge {
   padding: 1px 7px;
   font-size: 11px;
@@ -568,5 +866,14 @@ button.primary {
 @media (prefers-reduced-motion: reduce) {
   .turn-banner {
     animation-duration: 0.01s;
+  }
+
+  .power-banner {
+    animation-duration: 1.2s;
+    animation-timing-function: step-end;
+  }
+
+  .power-active {
+    animation: none;
   }
 }

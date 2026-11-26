@@ -5,6 +5,7 @@ import type { ActionError } from './actions/common';
 import { applyDive, applySurface } from './actions/dive';
 import { applyJoin } from './actions/join';
 import { applyMove } from './actions/move';
+import { applyActivatePower } from './actions/power';
 import { applySupply } from './actions/supply';
 import { applyLoad, applyUnload } from './actions/transport';
 import { advanceTurn, applyEndTurn, applyResign } from './actions/turn';
@@ -34,6 +35,8 @@ function dispatch(ruleset: CompiledRuleset, draft: Draft, action: Action): Actio
       return applySurface(ruleset, draft, action);
     case 'Build':
       return applyBuild(ruleset, draft, action);
+    case 'ActivatePower':
+      return applyActivatePower(ruleset, draft);
     case 'EndTurn':
       return applyEndTurn(ruleset, draft);
     case 'Resign':

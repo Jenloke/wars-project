@@ -10,6 +10,7 @@ import {
   type Unit,
   type UnitId,
 } from './types';
+import { incomeOf } from './units';
 
 export interface PlayerSetup {
   readonly controller: ControllerKind;
@@ -90,17 +91,11 @@ export function createGame(ruleset: CompiledRuleset, map: MapData, setup: GameSe
       power: 0,
       controller: setup.players[i]!.controller,
       alive: true,
+      powerActive: false,
     };
   });
 
-  // The first player's opening turn collects income like any other turn.
-  let firstIncome = 0;
-  for (let tile = 0; tile < tileCount; tile++) {
-    if (owner[tile] === 0) firstIncome += map.rules.incomePerProperty;
-  }
-  players[0] = { ...players[0]!, funds: players[0]!.funds + firstIncome };
-
-  return {
+  const state: GameState = {
     schemaVersion: SCHEMA_VERSION,
     rulesetId: ruleset.id,
     mapId: map.id,
@@ -119,4 +114,8 @@ export function createGame(ruleset: CompiledRuleset, map: MapData, setup: GameSe
     rng: setup.seed >>> 0,
     status: { kind: 'playing' },
   };
+
+  // The first player's opening turn collects income like any other turn.
+  players[0] = { ...players[0]!, funds: players[0]!.funds + incomeOf(ruleset, state, 0) };
+  return state;
 }

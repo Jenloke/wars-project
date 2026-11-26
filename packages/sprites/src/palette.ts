@@ -39,6 +39,20 @@ export const palette = {
   metalDark: '#3a3f4b',
 
   skin: '#e8b98a',
+  skinShade: '#cf9a6c',
+  tan: '#c48a5c',
+  tanShade: '#a06c42',
+  umber: '#8a5a3a',
+  umberShade: '#6a4228',
+  lip: '#b8665a',
+
+  hairDark: '#3a3540',
+  hairBrown: '#5e3b22',
+  hairBrownLight: '#7d5434',
+  hairRed: '#b04a2a',
+  hairRedLight: '#d0683c',
+  hairBlond: '#e2c069',
+  hairBlondShade: '#c09a44',
 
   white: '#ffffff',
   ink: '#1d1f26',
