@@ -22,8 +22,24 @@ interface Opponent {
 }
 
 /**
+ * Unit types some property on this map can build. A ruleset may have ports and
+ * airports, but on a map without them nobody can build ships or aircraft.
+ */
+export function buildableOnMap(board: Board): Set<number> {
+  const { ruleset, state } = board;
+  const present = new Uint8Array(ruleset.terrainCount);
+  for (const terrain of state.terrain) present[terrain] = 1;
+  const buildable = new Set<number>();
+  ruleset.terrain.forEach((terrain, index) => {
+    if (present[index] === 1) for (const unitType of terrain.builds) buildable.add(unitType);
+  });
+  return buildable;
+}
+
+/**
  * The enemy army, weighted by remaining HP. Before the enemy has any units, every
- * armed type that can be built stands in for it, commoner the cheaper it is.
+ * armed type that can be built on this map stands in for it, commoner the cheaper
+ * it is.
  */
 function opposition(board: Board): Opponent[] {
   const { ruleset, state } = board;
@@ -36,11 +52,8 @@ function opposition(board: Board): Opponent[] {
       weight: enemy.hp / maxHp,
     }));
   }
-  const buildable = new Set<number>();
-  for (const terrain of ruleset.terrain)
-    for (const unitType of terrain.builds) buildable.add(unitType);
   const expected: Opponent[] = [];
-  for (const unitType of buildable) {
+  for (const unitType of buildableOnMap(board)) {
     const def = ruleset.units[unitType]!;
     if (def.maxRange === 0) continue;
     expected.push({
