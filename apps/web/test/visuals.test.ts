@@ -7,6 +7,7 @@ import {
 import { compileRuleset } from '@tactics/engine';
 import { sprites } from '@tactics/sprites';
 import { describe, expect, it } from 'vitest';
+import { PORTRAIT_FALLBACK, portraitOf } from '../src/session/armies';
 
 const ruleset = compileRuleset(rawRuleset);
 
@@ -38,6 +39,15 @@ describe('art for the shipped content', () => {
         }
       }
     }
+  });
+
+  it('gives every commander a portrait in team colours, with a silhouette for any without', () => {
+    for (const commander of ruleset.commanders) {
+      const portrait = sprites.find(portraitOf(commander.id));
+      expect(portrait, `${commander.id} has no portrait`).toBeDefined();
+      expect(portrait!.team).toBe(true);
+    }
+    expect(sprites.get(PORTRAIT_FALLBACK).team).toBe(true);
   });
 
   it('has placeholder art and the markers the renderer draws', () => {
