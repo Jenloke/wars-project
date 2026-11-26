@@ -105,3 +105,69 @@ describe('commander profiles', () => {
     expect(commanderProfile('custom')).toEqual({ title: 'Commander', bio: 'No briefing on file.' });
   });
 });
+
+describe('the shipped commanders', () => {
+  const playable = ruleset.commanders.filter((commander) => commander.power !== undefined);
+  const luminance = (hex: string) => {
+    const value = Number.parseInt(hex.slice(1), 16);
+    return 0.299 * (value >> 16) + 0.587 * ((value >> 8) & 255) + 0.114 * (value & 255);
+  };
+
+  it('are at least five, each with an innate ability and one power', () => {
+    expect(playable.length).toBeGreaterThanOrEqual(5);
+    for (const commander of playable) {
+      expect(commander.modifiers.length).toBeGreaterThan(0);
+      expect(commander.power!.cost).toBeGreaterThan(0);
+    }
+  });
+
+  it('each lead with a different mechanic, together covering every requested one', () => {
+    const leads = playable.map((commander) => commander.modifiers[0]!.hook);
+    expect(new Set(leads).size).toBe(leads.length);
+    expect(leads).toEqual(
+      expect.arrayContaining(['attack', 'defence', 'income', 'regen', 'range', 'capture']),
+    );
+  });
+
+  it('charge their meters fastest from what they do best', () => {
+    const fastest: Record<string, string[]> = {
+      attack: ['damageDealt', 'kills'],
+      defence: ['damageTaken'],
+      income: ['captures', 'income'],
+      regen: ['damageTaken', 'income'],
+      range: ['damageDealt'],
+      capture: ['captures'],
+    };
+    for (const commander of playable) {
+      const fast = describeCommander(ruleset, commander.id)
+        .charge.filter((line) => line.pace === 'fast')
+        .map((line) => line.source);
+      expect(fast).toEqual(fastest[commander.modifiers[0]!.hook]);
+    }
+  });
+
+  it('each lead an army of their own, in colours no other army shares', () => {
+    const profiles = playable.map((commander) => commanderProfile(commander.id));
+    for (const profile of profiles) {
+      expect(profile.army).toBeDefined();
+      expect(profile.innate).toBeDefined();
+      const ramp = profile.colors!;
+      // Light to deep, as the team placeholders are.
+      for (let i = 1; i < ramp.length; i++) {
+        expect(luminance(ramp[i]!)).toBeLessThan(luminance(ramp[i - 1]!));
+      }
+    }
+    expect(new Set(profiles.map((profile) => profile.army)).size).toBe(profiles.length);
+    expect(new Set(profiles.map((profile) => profile.colors![1])).size).toBe(profiles.length);
+  });
+
+  it('are all described, with every effect of their power', () => {
+    for (const commander of playable) {
+      const summary = describeCommander(ruleset, commander.id);
+      expect(summary.innate).toHaveLength(commander.modifiers.length);
+      expect(summary.power!.lines).toHaveLength(
+        commander.power!.modifiers.length + (commander.power!.effects?.length ?? 0),
+      );
+    }
+  });
+});
