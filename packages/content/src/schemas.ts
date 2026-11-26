@@ -47,26 +47,53 @@ export const damageEntrySchema = z.object({
   secondary: percent.optional(),
 });
 
+const modifierSchema = z.object({
+  hook: z.enum([
+    'attack',
+    'defence',
+    'movement',
+    'cost',
+    'range',
+    'capture',
+    'repair',
+    'regen',
+    'income',
+  ]),
+  units: z.array(id).min(1).optional(),
+  value: z.number().int(),
+});
+
+const powerEffectSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('heal'),
+    hp: z.number().int().positive(),
+    units: z.array(id).min(1).optional(),
+  }),
+  z.object({ kind: z.literal('resupply'), units: z.array(id).min(1).optional() }),
+  z.object({ kind: z.literal('funds'), incomePercent: z.number().int().positive() }),
+]);
+
 export const commanderSchema = z.object({
   id,
   name: z.string().min(1),
-  modifiers: z.array(
-    z.object({
-      hook: z.enum([
-        'attack',
-        'defence',
-        'movement',
-        'cost',
-        'range',
-        'capture',
-        'repair',
-        'regen',
-        'income',
-      ]),
-      units: z.array(id).optional(),
-      value: z.number().int(),
-    }),
-  ),
+  modifiers: z.array(modifierSchema),
+  charge: z
+    .object({
+      damageDealt: count,
+      damageTaken: count,
+      kills: count,
+      captures: count,
+      income: count,
+    })
+    .optional(),
+  power: z
+    .object({
+      name: z.string().min(1),
+      cost: z.number().int().positive(),
+      modifiers: z.array(modifierSchema),
+      effects: z.array(powerEffectSchema).optional(),
+    })
+    .optional(),
 });
 
 export const rulesetSchema = z.object({
