@@ -1,6 +1,6 @@
 # Architecture
 
-Status: **Phases 1 to 4 approved.**
+Status: **Phases 1 to 4 approved; phase 5 awaits approval.**
 Sections below describe the code as built.
 Commit conventions are in [COMMITS.md](COMMITS.md); test coverage is specified in
 [TESTING.md](TESTING.md).
@@ -39,6 +39,7 @@ packages/
       actions/               # one file per action family: validate + apply
       draft.ts               # copy-on-write working state
       rules.ts               # predicates shared by the reducer, option listing and the AI
+      commanders.ts          # the modifiers in effect for a player (innate, plus power)
       options.ts             # what a unit or base can do (menus and the AI)
       applyAction.ts         # reducer entry point
       hash.ts                # FNV-1a state hash (desync detection)
@@ -61,7 +62,9 @@ packages/
     src/
       schemas.ts
       ruleset.ts             # assembles and validates the RawRuleset
-      units.ts  terrain.ts  moveTypes.ts  damage.ts  commanders.ts  factions.ts
+      units.ts  terrain.ts  moveTypes.ts  damage.ts  factions.ts
+      commanders.ts          # commanders (rules) and their profiles (army, colours, bio)
+      commanderText.ts       # plain-language descriptions written from commander data
       visuals.ts             # how units and terrain are drawn: conventions, overrides
       maps/ascii.ts          # ASCII -> MapJson converter + legend
       maps/twinFords.ts  maps/ternReach.ts
@@ -70,7 +73,7 @@ packages/
       index.ts               # public API: ruleset, map registry, readSave
     test/
   sprites/
-    src/svg/{terrain,building,unit,ui,fx}/*.svg
+    src/svg/{terrain,building,unit,portrait,ui,fx}/*.svg
     src/palette.ts           # shared palette + team placeholders -> faction ramps
     src/svg.ts               # parse one SVG frame into polygons, enforcing the art rules
     src/raster.ts            # scanline polygon fill at any size, with recolour and shade
@@ -82,7 +85,7 @@ apps/
       render/                # camera, sprite cache, terrain layer, autotile, units, overlays, tweens
       input/                 # pointer + keyboard -> UI intents
       store/                 # zustand: UI state only
-      session/               # GameSession: game record + action loop; local and AI controllers
+      session/               # GameSession: game record + action loop; controllers; armies
       saves/                 # local storage slots, autosave, file export/import
       ui/                    # React DOM: menus, panels, HUD
       App.tsx  main.tsx
@@ -150,9 +153,10 @@ interface Unit {
 interface Player {
   funds: number;
   commander: number; // index into ruleset.commanders (0 = no-op)
-  power: number; // power meter
+  power: number; // power meter, in meter points
   controller: 'local' | 'ai' | 'remote';
   alive: boolean;
+  powerActive: boolean; // from activating the power until this player's next turn (schema 3)
 }
 ```
 
@@ -215,9 +219,9 @@ type Action =
   | { type: 'Dive'; unit: UnitId; path: TileIndex[] }
   | { type: 'Surface'; unit: UnitId; path: TileIndex[] }
   | { type: 'Build'; at: TileIndex; unitType: number }
+  | { type: 'ActivatePower' }
   | { type: 'EndTurn' }
   | { type: 'Resign' };
-// Phase 5 addition: ActivatePower
 ```
 
 - Move-then-act is one atomic action, so the log never holds a half-finished turn step.
@@ -227,12 +231,17 @@ type Action =
   illegal action never changes state. This is what makes remote play host-authoritative.
 - `events` (`UnitMoved`, `Damaged`, `Destroyed`, `Captured`, ...) are a by-product for
   the renderer's tweens. They are not part of state and not needed to replay.
-- `EndTurn` runs the next player's start-of-turn, in this order: income; daily fuel use
-  (`fuelPerDay`, or the dive rate while dived; units in a transport use none); repair and
-  resupply on owned properties and supply from adjacent supply units; then every
-  `lostWithoutFuel` unit left with an empty tank crashes or sinks with its cargo
-  (`UnitDestroyed` with `cause: 'fuel'`), routing the player if it was their last. Because
-  resupply comes first, a unit that ends its turn on an airport or beside an APC is safe.
+- `EndTurn` runs the next player's start-of-turn, in this order: the end of any power
+  they activated last turn; income (with their commander's income modifier), which also
+  charges their meter; daily fuel use (`fuelPerDay`, or the dive rate while dived; units in
+  a transport use none); repair and resupply on owned properties (with any extra repair
+  their commander gives) and supply from adjacent supply units; the commander's free
+  healing (`regen`); then every `lostWithoutFuel` unit left with an empty tank crashes or
+  sinks with its cargo (`UnitDestroyed` with `cause: 'fuel'`), routing the player if it was
+  their last. Because resupply comes first, a unit that ends its turn on an airport or
+  beside an APC is safe.
+- `ActivatePower` spends the active player's meter on their commander's power (section
+  4.3). It can be used at any point in their turn, between unit orders.
 - `Dive` and `Surface` are orders after a move, like `Capture`, for units with a `dive`
   rule.
 - **Action log**: the session keeps a `GameRecord` of `{ map, setup, actions }`, where
@@ -249,8 +258,9 @@ damage% = (base[atk][def] * atkMod / 100 + luck)        luck = rng 0..9
         * (200 - defMod - defStars * defenderPips) / 100
 ```
 
-`atkMod` and `defMod` are commander percentages (100 = unmodified). The whole
-expression is evaluated in integer arithmetic so every platform agrees. Each unit
+`atkMod` and `defMod` are the commander percentages in effect for each side (100 =
+unmodified; innate modifiers, plus the power's while it is active). The whole expression
+is evaluated in integer arithmetic so every platform agrees. Each unit
 may have a primary weapon (uses ammo) and a secondary one (unlimited); the primary
 is used whenever it has ammo and can hit the target.
 
@@ -273,18 +283,113 @@ size and reused, so a range query allocates nothing. Enemy units block; friendly
 units can be passed through but not stopped on (except Join/Load). The result
 `{ cost, cameFrom }` serves the range overlay, path preview, and action validation.
 
-### 4.3 Commander hooks (rule 7)
+### 4.3 Commanders (rule 7)
+
+A commander is data: innate modifiers, at most one power, and the rates its power meter
+charges at. Effects are data-described modifiers the engine evaluates, never functions,
+so state and content stay serializable. Commander 0 is the no-op default.
 
 ```ts
-interface CommanderDef {
+interface RawCommanderDef {
   id: string;
-  modifiers: Modifier[]; // data: { hook, filter, op, value }
+  name: string;
+  modifiers: RawModifier[]; // innate, always in effect
+  charge?: RawCharge; // how the meter fills; defaults to DEFAULT_CHARGE
+  power?: { name: string; cost: number; modifiers: RawModifier[]; effects?: RawPowerEffect[] };
 }
-type Hook = 'attack' | 'defence' | 'movement' | 'cost' | 'powerGain';
+interface RawModifier {
+  hook:
+    | 'attack'
+    | 'defence'
+    | 'movement'
+    | 'cost'
+    | 'range'
+    | 'capture'
+    | 'repair'
+    | 'regen'
+    | 'income';
+  units?: UnitSelector[]; // omit for all units
+  value: number;
+}
 ```
 
-Hooks are data-described modifiers evaluated by the engine, not functions, so state
-and content stay serializable. Commander 0 has an empty modifier list (no-op).
+| Hook       | Value                                       | Applied in                                               |
+| ---------- | ------------------------------------------- | -------------------------------------------------------- |
+| `attack`   | percentage points on 100                    | damage formula (`atkMod`)                                |
+| `defence`  | percentage points on 100                    | damage formula (`defMod`)                                |
+| `movement` | move points added (never below 0)           | movement budget                                          |
+| `cost`     | percentage points on 100                    | build price, repair price, join refunds, meter value     |
+| `range`    | tiles added to an indirect unit's max range | attack validation, targets, AI threat map                |
+| `capture`  | percentage of displayed HP removed per turn | capture (at least 1 point)                               |
+| `repair`   | internal HP added to a property's repair    | start-of-turn repair, still paid for                     |
+| `regen`    | internal HP recovered free at start of turn | every unit, anywhere, carried ones too; never below 1 HP |
+| `income`   | percentage points on 100 (takes no `units`) | income each turn, and the opening funds                  |
+
+Selectors are the cargo-rule selectors (section 3.1) plus two classes every unit belongs
+to by its weapons: `direct` (max range 1) and `indirect` (max range above 1). `range` only
+ever stretches indirect fire; a direct unit firing from two tiles away would break the
+rule that only adjacent units trade blows. A selector that matches no unit fails the
+compile.
+
+**Compiled form.** Each commander compiles to two `CompiledModifiers` sets of per-unit-type
+typed arrays: `passive` (innate) and `powered` (innate plus the power's). `modifiersOf(ruleset,
+state, player)` returns the set in effect, and every rule reads through it or the helpers
+built on it (`movePointsOf`, `unitCost`, `maxRangeOf`, `captureAmount`, `incomeOf`), so
+menus, the AI and the reducer always agree. Hot paths stay array lookups.
+
+**Powers.** `ActivatePower` needs a commander with a power, a meter holding at least its
+cost, and the power not already active (`powerBlocker` gives the reason for menus). It
+spends the cost, sets `powerActive`, emits `PowerActivated`, and applies the power's
+one-off effects with its modifiers already in effect:
+
+| Effect     | Does                                                        |
+| ---------- | ----------------------------------------------------------- |
+| `heal`     | units it names regain `hp` internal HP for free, up to full |
+| `resupply` | units it names are refilled with fuel and ammo              |
+| `funds`    | pays `incomePercent` percent of a day's income at once      |
+
+The power's modifiers last until the start of that player's next turn, so a defensive
+power holds through the opponent's turn.
+
+**The meter** is counted in meter points. Each commander's `charge` gives a rate per source:
+
+| Source        | Points                                                                     |
+| ------------- | -------------------------------------------------------------------------- |
+| `damageDealt` | percent of the funds value of damage its units deal (attacks and counters) |
+| `damageTaken` | percent of the funds value of damage its units take                        |
+| `kills`       | percent of the cost of each enemy unit destroyed, on top of the damage     |
+| `captures`    | points per property captured (not for progress)                            |
+| `income`      | percent of the funds collected at the start of each turn                   |
+
+The funds value of damage is the damaged unit's cost (after its own commander's cost
+modifier) times the share of its HP lost. The meter holds no more than the power's cost
+and does not charge while the power is active. `DEFAULT_CHARGE` (all of the damage taken,
+half of the damage dealt, nothing else) is the rule every meter followed before commanders
+had rates, and commanders without a power keep counting past any cap as before, so saves
+from phases 1 to 4 replay to the same meters.
+
+**The shipped commanders** (`packages/content/src/commanders.ts`), one per mechanic, each
+charging fastest from what it does best:
+
+| Commander, army               | Innate                                                                        | Power (cost)                                                                      | Meter fills fastest from |
+| ----------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------ |
+| Iska Varn, Cinder Legion      | +20% firepower, -5% defence                                                   | Firestorm (26000): +35% firepower                                                 | damage dealt, kills      |
+| Corvin Ash, Tidewatch         | +15% defence, vehicles -1 movement                                            | Iron Line (28000): +25% defence                                                   | damage taken             |
+| Odile Penn, Sunward Compact   | +15% income, -10% firepower                                                   | Windfall (28000): a day's income at once, units 20% cheaper                       | captures, income         |
+| Halden Moss, Fernhold Wardens | every unit recovers 1 HP a turn, properties repair 1 HP more, units +10% cost | Triage (26000): heal 3 HP, resupply, +10% defence                                 | damage taken, income     |
+| Orla Teague, Dusk Syndicate   | indirect +1 range and +15% cost, direct -10% firepower                        | Barrage (28000): indirect +1 more range and +20% firepower                        | damage dealt             |
+| Pip Harrow, Free Banners      | +50% capture speed, infantry and mechs 25% cheaper                            | Flag Rush (22000): +100% more capture speed, infantry +1 movement, +15% firepower | captures                 |
+
+The numbers were tuned with the computer playing every pairing on Twin Fords for 30 days
+on two seeds: each commander came out ahead in 7 to 15 of its 20 games, and powers fired
+every three or four days. On Tern Reach the economy and capture commanders do better, as
+a larger map with more properties should allow.
+
+**Presentation** lives beside the rules in content: a `CommanderProfile` per commander
+(title, bio, innate ability name, and the army it leads with that army's four team
+colours), and `describeCommander`, which writes the innate, power and meter text from the
+rules data, so no hand-written rules text can drift from the numbers. Section 9 covers
+how armies are coloured.
 
 ### 4.4 PlayerController (rule 6)
 
@@ -453,10 +558,13 @@ interface SaveData {
   at a time, keyed by the version they upgrade from. Saves from a newer build are refused.
   Format 2 (phase 4) gave every unit `dived` and moved the state to schema 2; the 1 -> 2
   step adds `dived: false` after the existing keys, so the migrated snapshot still matches
-  a replay byte for byte. A real format 1 save from the phase 3 build is kept as a test
-  fixture and must keep loading. New units and terrain were appended and no existing
+  a replay byte for byte. Format 3 (phase 5) gave every player `powerActive` and moved the
+  state to schema 3; the 2 -> 3 step adds `powerActive: false` last, as new players have it.
+  A real format 1 save from the phase 3 build is kept as a test fixture and must keep
+  loading, through both steps, with its meters at the values it was saved with. New units and terrain were appended and no existing
   matchup changed, so phase 3 logs replay to the same game and the ruleset ID is still
-  `core-1`.
+  `core-1`. Phase 5 appended commanders after the unchanged default one and kept the
+  default meter rule, so it kept `core-1` too.
 - **Rules changes**: a change that alters replay results bumps the ruleset `id` in
   `packages/content/src/ruleset.ts`. Older saves are then refused with
   `rulesetMismatch` instead of replaying into a different game.
@@ -481,6 +589,9 @@ actions go through the reducer, the log and saves like anyone else's.
 
 **One decision**, in order of preference:
 
+0. **Power.** If its commander's power is ready, it activates it first, so the rest of
+   the turn is played with it, a power that pays funds or cuts prices is in effect before
+   it builds, and a defensive power holds through the opponent's turn.
 1. **Tactics.** Every attack, capture and supply an unmoved unit could make this turn,
    scored in funds; the best positive one is taken.
    - _Attack_: expected damage over all luck rolls, times the target's cost, plus a kill
@@ -518,6 +629,14 @@ the stronger side presses on.
 first, by turns of walking less a priority for HQs, bases and enemy property, so each
 property gets one unit and a unit mid-capture keeps its property.
 
+**Commanders**: the AI reads ranges and capture speed through the engine
+(`maxRangeOf`, `captureAmount`), so an enemy's longer-ranged artillery widens the threat
+map and a capture its own commander finishes in one turn is scored as banked. Damage
+forecasts use the engine's damage function, so firepower and defence modifiers on both
+sides are counted. Production values each unit type with both commanders' firepower and
+defence, and an indirect unit starts a larger share of its fights for each tile of range
+its commander adds (`rangeInitiative`), so a commander with long guns builds them.
+
 **Fair play and determinism**: the AI sees units, terrain and funds, which are public
 without fog of war. It never reads `state.rng`, so it cannot foresee luck. Given the
 same state it always returns the same action (ties break by unit id and tile).
@@ -554,7 +673,8 @@ the camera and cursor follow its actions. If the reducer ever refused one of its
 actions, it would end the turn rather than retry forever.
 
 **Not yet**: the AI does not load or unload transports (so it never builds landers or
-transport copters), join units, or save funds for a later build. Mirror matches on a
+transport copters), join units, or save funds for a later build. It uses its power as
+soon as the meter is full rather than timing it. Mirror matches on a
 symmetric map tend toward long wars of attrition.
 
 **Cost**: a full 60-day self-play game on Tern Reach takes about 4 seconds.
@@ -596,6 +716,13 @@ Sprites are vector art all the way to the screen: there is no build step and no 
 7. **Air and water**: units with a `lift` (aircraft, by move type) are drawn that many
    grid units up with `ui.shadow` faintly below; a dived unit is drawn see-through with
    the animated `ui.submerged` water over its hull.
+8. **Portraits**: commander `x` is drawn as `portrait.x`, a bust on a backdrop with its
+   uniform, headgear and backdrop in team placeholders, so it takes its army's colours.
+   The menus rasterise it into a canvas at the display's real resolution. A commander
+   without a portrait is drawn as `portrait.unknown`, a silhouette. Faces use the skin and
+   hair tones in the palette.
+9. **Team colours**: the renderer's sprite cache takes one ramp per seat from the game's
+   armies (section 9), so units and buildings are drawn in their commander's colours.
 
 ## 9. Renderer and UI
 
@@ -624,10 +751,29 @@ targeting | unloading | buildMenu | mapMenu`), selected unit, cached reachable s
   `GameSession`, not in the store; React subscribes to it through
   `useSyncExternalStore`.
 - **Input**: mouse (click select/confirm, right-click cancel, drag pan, wheel zoom) and
-  keyboard (arrows/WASD cursor, Enter/Space confirm, Esc cancel, E end turn). During a
-  computer turn the cursor still moves for inspection, but no orders are accepted.
-- **New game**: a dialog picks the map and whether a person or the computer plays each
-  side (default: you against the computer).
+  keyboard (arrows/WASD cursor, Enter/Space confirm, Esc cancel, E map menu, P power).
+  During a computer turn the cursor still moves for inspection, but no orders are
+  accepted.
+- **Armies** (`session/armies.ts`): each side's name, colours, accent colour and portrait
+  come from its commander. A commander with an army brings that army's name and colours;
+  a seat led by the default commander, or by a commander another seat already leads,
+  takes the first faction whose colours are free, starting from its own slot, so older
+  games look as they did. Worked out once per game and cached.
+- **New game**: a dialog picks the map and, for each side, whether a person or the
+  computer plays it and which commander leads it. Each side shows its commander's
+  portrait, army and colour; picking a side opens the roster of every commander and a
+  briefing on the chosen one (bio, innate ability, power and its cost, and how fast each
+  source fills the meter, all written by `describeCommander`). A commander leads one side
+  at a time; the default Field Officer may lead several. It starts from the current
+  game's choices when they fit, else you against the computer with a different
+  commander per side.
+- **Powers**: the top bar shows the side to move by portrait and army, with its power
+  meter filling in the army's colour; once full, a button named after the power (also P
+  and the first item of the map menu) activates it on a human turn. While it is active
+  the meter shows the power's name. A banner with the commander's portrait announces
+  every activation, the computer's included. The info panel lists every side's commander
+  and meter, and the unit card shows Move and Range as the unit's commander changes them,
+  with the unit's own value beside them when they differ.
 - **Layout**: canvas fills the viewport; panels dock to the side on desktop and to the
   bottom below about 900px width.
 
@@ -674,6 +820,23 @@ property data, so it works everywhere at once.
 
 **Terrain** is the same without `property`: `svg/terrain/<id>.svg`, or an `autotile`
 rule in `terrainVisuals` and one sprite per neighbour mask.
+
+**A commander**
+
+1. Append it to `commanders` in `packages/content/src/commanders.ts` (append only:
+   players store commanders by index). Give it innate `modifiers`, a `power` with a
+   `cost`, its own `modifiers` and any `effects`, and `charge` rates that favour what it
+   does best (section 4.3). Modifiers name units with selectors, `direct` and `indirect`
+   included.
+2. Give it a profile in `commanderProfiles`: title, bio, innate ability name, and the army
+   it leads with four team colours (light to deep) no other army uses.
+3. Draw `packages/sprites/src/svg/portrait/<id>.svg` with team placeholders for the
+   uniform. Until it exists the commander is shown as a silhouette.
+
+It then appears in the new game roster with a briefing written from its data, the AI
+uses its power, and its army is drawn in its colours, with no engine, renderer, UI or AI
+change. The content tests check it has an innate ability and a power, a fast meter
+source, an army and colours of its own, and (in `apps/web/test`) a portrait.
 
 ## 12. Phase 1 build order
 

@@ -4,7 +4,7 @@ This document says what the automated test suite must cover, where each requirem
 is tested, and what is checked by hand instead. It applies to every phase: a phase is
 not finished until its requirements are listed here and their tests pass.
 
-Status: **Phases 1 to 4.** 213 tests in 26 files, all passing.
+Status: **Phases 1 to 5.** 272 tests in 32 files, all passing.
 Architecture is in [ARCHITECTURE.md](ARCHITECTURE.md), commit rules in
 [COMMITS.md](COMMITS.md) and the product spec in [SPEC.md](SPEC.md).
 
@@ -57,7 +57,7 @@ Every commit must pass `pnpm typecheck`, `pnpm lint`, `pnpm format:check` and
 | Package            | Tests in         | Fixtures                                                                                                                                                                                                                                                                                                                |
 | ------------------ | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/engine`  | `test/*.test.ts` | `fixtures.ts`: a land-only `testRuleset`, an ASCII legend for test maps, `makeMap`, `makeGame`, `apply`/`reject`, `withUnit`, a scripted game for save tests, `deepFreeze`. `navalFixtures.ts`: `navalRuleset` with air, sea and lander move types, six naval and air units, and shoal, reef, port and airport terrain. |
-| `packages/content` | `test/*.test.ts` | `fixtures/save-v1.json`: a real save written by the phase 3 build, kept to prove old saves still load.                                                                                                                                                                                                                  |
+| `packages/content` | `test/*.test.ts` | `fixtures/save-v1.json`: a real save written by the phase 3 build, kept to prove old saves still load through every migration since.                                                                                                                                                                                    |
 | `packages/sprites` | `test/*.test.ts` | Inline SVG strings.                                                                                                                                                                                                                                                                                                     |
 | `packages/ai`      | `test/*.test.ts` | `fixtures.ts`: the shipped ruleset, `makeGame` from ASCII rows (plus `c`/`d` for owned cities), `destination` of an action, `unitAt`.                                                                                                                                                                                   |
 | `apps/web`         | `test/*.test.ts` | In-memory storage and fake controllers inside each test.                                                                                                                                                                                                                                                                |
@@ -146,6 +146,29 @@ A requirement with no automated test is listed in section 6 instead.
 | A dived unit burns its dived fuel rate                                           | 4     |
 | Joining keeps the dive state of the unit joined into                             | 4     |
 
+**Commanders** (`commanders.test.ts`, `power.test.ts`, `meter.test.ts`)
+
+Each test adds a commander, `test`, to the fixture ruleset, so the rules are proved on
+data rather than on the shipped commanders.
+
+| Requirement                                                                                                                                    | Phase |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| Range modifiers stretch indirect fire so it can hit what was out of reach, leave direct units alone, and never shorten below the minimum range | 5     |
+| Capture modifiers scale capture by displayed HP, can capture in one turn, round down, and always remove at least one point                     | 5     |
+| Income modifiers scale what each property pays, from the opening funds on                                                                      | 5     |
+| Repair modifiers repair more HP on owned properties at the usual price per HP                                                                  | 5     |
+| Regeneration heals the owner's units for free at the start of their turn, anywhere, carried units too, never above full or below 1 HP          | 5     |
+| Modifiers name units by ID, move type, tag or the `direct` and `indirect` classes; a selector that matches no unit fails to compile            | 5     |
+| Firepower and defence modifiers apply in the damage formula; movement never drops below zero                                                   | 5     |
+| Activating a power is refused without a power, before the meter is full and while it is active                                                 | 5     |
+| A power spends the meter and adds its modifiers to the innate ones, from activation until its owner's next turn starts                         | 5     |
+| Power effects heal and resupply the units they name, for free, and pay a share of a day's income counting the power's own modifiers            | 5     |
+| Power definitions need a positive cost and selectors that name units                                                                           | 5     |
+| A game with an active power saves and replays exactly                                                                                          | 5     |
+| The meter fills by default as in phases 1 to 4: all of the damage taken, half of what is dealt                                                 | 5     |
+| Each commander's rates charge damage dealt and taken, kills, captures (not progress) and income collected each turn                            | 5     |
+| The meter holds no more than the power costs, stops while the power is active, and resumes when it ends; negative rates are refused            | 5     |
+
 **Turns, win, determinism** (`game.test.ts`)
 
 | Requirement                                                                                                  | Phase |
@@ -168,6 +191,7 @@ A requirement with no automated test is listed in section 6 instead.
 | Edited state, truncated logs, other rulesets and unloadable maps are refused; the first illegal action is named                                                   | 2     |
 | Migrations: current saves unchanged, steps applied in order, newer and unknown versions refused, non-saves refused, a step that forgets to bump the version fails | 2     |
 | Format 1 → 2 gives every unit `dived: false` in key order                                                                                                         | 4     |
+| Format 2 → 3 gives every player `powerActive: false`, last in key order                                                                                           | 5     |
 | Every version below the current one has an upgrade step                                                                                                           | 2     |
 
 **Performance** (`perf.test.ts`, 30 × 20 map)
@@ -197,6 +221,19 @@ A requirement with no automated test is listed in section 6 instead.
 | Aircraft cross every terrain at cost 1; reefs cost ships 2 and give one star; shoals take ground units and landers but not other ships; ports take both | 4     |
 | Terrain, buildings and units are drawn by naming convention unless a visual overrides it                                                                | 4     |
 
+**Commanders** (`commanders.test.ts`)
+
+| Requirement                                                                                                                    | Phase |
+| ------------------------------------------------------------------------------------------------------------------------------ | ----- |
+| Descriptions are written from the data: every innate modifier, the power's effects then modifiers, and a pace per meter source | 5     |
+| The default commander has nothing to describe; unknown commanders are refused                                                  | 5     |
+| A described commander passes the content schema and compiles in the engine                                                     | 5     |
+| The default commander has a profile with no army of its own; a commander with no profile gets a plain one                      | 5     |
+| At least five shipped commanders, each with an innate ability and one power                                                    | 5     |
+| Each leads with a different mechanic, together covering firepower, defence, economy, regeneration, range and capture           | 5     |
+| Each charges fastest from what it does best                                                                                    | 5     |
+| Each leads an army with a name and colours of its own, light to deep                                                           | 5     |
+
 **Maps** (`content.test.ts`)
 
 | Requirement                                                                                                                                                                      | Phase |
@@ -210,12 +247,12 @@ A requirement with no automated test is listed in section 6 instead.
 
 **Save files** (`saves.test.ts`)
 
-| Requirement                                                                                              | Phase |
-| -------------------------------------------------------------------------------------------------------- | ----- |
-| A saved Twin Fords game loads to an identical state                                                      | 2     |
-| A format 1 save written by the phase 3 build still loads                                                 | 4     |
-| Non-saves, damaged fields (named), invalid maps, newer builds, other rules and tampered logs are refused | 2     |
-| The action schema accepts every action type, Dive and Surface included, and refuses malformed ones       | 2, 4  |
+| Requirement                                                                                                       | Phase   |
+| ----------------------------------------------------------------------------------------------------------------- | ------- |
+| A saved Twin Fords game loads to an identical state                                                               | 2       |
+| A format 1 save written by the phase 3 build still loads, with its meters at the values it was saved with         | 4, 5    |
+| Non-saves, damaged fields (named), invalid maps, newer builds, other rules and tampered logs are refused          | 2       |
+| The action schema accepts every action type, Dive, Surface and ActivatePower included, and refuses malformed ones | 2, 4, 5 |
 
 ### 4.3 Sprites (`packages/sprites/test/sprites.test.ts`)
 
@@ -251,6 +288,10 @@ A requirement with no automated test is listed in section 6 instead.
 | Plays Twin Fords against itself legally and deterministically                                                                                  | `game.test.ts`       | 3     |
 | Plays 60 days of Tern Reach, builds aircraft and loses none to fuel                                                                            | `game.test.ts`       | 4     |
 | Never reads the luck seed; only ends the turn once the game is over                                                                            | `game.test.ts`       | 3     |
+| Reads enemy indirect fire at the range their commander gives it; banks a capture its commander finishes in one turn                            | `commanders.test.ts` | 5     |
+| Activates its power as soon as the meter is full, and never without a power                                                                    | `commanders.test.ts` | 5     |
+| Values what it builds by its commander's range and firepower                                                                                   | `commanders.test.ts` | 5     |
+| Plays fifteen days with every commander, each side using its power                                                                             | `commanders.test.ts` | 5     |
 | A turn with 20 units a side on 30 × 20 takes under 2 s                                                                                         | `game.test.ts`       | 3     |
 
 ### 4.5 Web app (`apps/web/test`)
@@ -264,6 +305,10 @@ A requirement with no automated test is listed in section 6 instead.
 | Every unit and terrain in the shipped content has its own art; placeholders and renderer markers exist                                                                             | `visuals.test.ts`     | 4     |
 | Tiles are whole device pixels at any display scaling; the tile under a point is found at fractional scaling                                                                        | `camera.test.ts`      | 4     |
 | The turn banner names units lost to fuel and no others                                                                                                                             | `fuelLosses.test.ts`  | 4     |
+| Sides take their commander's army name and colours; default commanders keep their faction; sides that share colours are kept apart                                                 | `armies.test.ts`      | 5     |
+| New games put each side's chosen commander in the setup                                                                                                                            | `gameSession.test.ts` | 5     |
+| Save summaries name each side's commander and keep them through the index                                                                                                          | `saveStore.test.ts`   | 5     |
+| Every commander has a team-coloured portrait, and the silhouette exists                                                                                                            | `visuals.test.ts`     | 5     |
 
 ## 5. The spec's quality bar
 
@@ -285,18 +330,21 @@ These parts need a canvas or a DOM, which the node test run does not have. They 
 checked in the running app (`pnpm dev`) before a phase is handed over, at 100% and at
 a fractional display scale such as 125% or 150%.
 
-| Area          | Code                                           | Checks                                                                                                                                                                                                                              |
-| ------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Map drawing   | `render/renderer.ts`, `render/terrainLayer.ts` | Terrain, roads, bridges and coasts autotile; properties in owner colours; sprites sharp at every zoom level and display scale; no gaps between tiles.                                                                               |
-| Units         | `render/renderer.ts`, `render/spriteCache.ts`  | Team colours; two-frame idle; dimmed after acting; HP digits and low fuel, low ammo and capture icons; aircraft drawn raised with a shadow; dived units see-through with the submerged overlay; transports show their cargo marker. |
-| Animation     | `render/playback.ts`                           | Slide along the path, attack bump, capture hop, destroy puff, including a crash from fuel.                                                                                                                                          |
-| Orders        | `input/interaction.ts`, `ui/Menus.tsx`         | Each order appears only when legal: Attack, Capture, Supply, Dive, Surface, Join, Load, Unload, Wait. Range and path previews; damage preview before attacking.                                                                     |
-| Panels        | `ui/InfoPanel.tsx`                             | Unit fuel shows the daily rate (dived rate while dived); aircraft show "None while flying" as cover; status shows Dived and Done.                                                                                                   |
-| Turn banner   | `ui/Overlays.tsx`                              | Day, faction and computer marker; "Out of fuel" lists the units lost as the turn began.                                                                                                                                             |
-| Build menus   | `ui/Menus.tsx`                                 | Bases, ports and airports list the units they build, with costs and affordability.                                                                                                                                                  |
-| Saves         | `saves/*`, `ui/GameDialog.tsx`                 | Autosave resumes after a reload; export and import of a file; a full storage message.                                                                                                                                               |
-| Computer seat | `session/aiController.ts`                      | The computer plays a full turn at a watchable pace and hands back.                                                                                                                                                                  |
-| Layout        | `ui/*`, `styles.css`                           | Mouse and keyboard controls; usable down to tablet width.                                                                                                                                                                           |
+| Area          | Code                                               | Checks                                                                                                                                                                                                                              |
+| ------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Map drawing   | `render/renderer.ts`, `render/terrainLayer.ts`     | Terrain, roads, bridges and coasts autotile; properties in owner colours; sprites sharp at every zoom level and display scale; no gaps between tiles.                                                                               |
+| Units         | `render/renderer.ts`, `render/spriteCache.ts`      | Team colours; two-frame idle; dimmed after acting; HP digits and low fuel, low ammo and capture icons; aircraft drawn raised with a shadow; dived units see-through with the submerged overlay; transports show their cargo marker. |
+| Animation     | `render/playback.ts`                               | Slide along the path, attack bump, capture hop, destroy puff, including a crash from fuel.                                                                                                                                          |
+| Orders        | `input/interaction.ts`, `ui/Menus.tsx`             | Each order appears only when legal: Attack, Capture, Supply, Dive, Surface, Join, Load, Unload, Wait. Range and path previews; damage preview before attacking.                                                                     |
+| Panels        | `ui/InfoPanel.tsx`                                 | Unit fuel shows the daily rate (dived rate while dived); aircraft show "None while flying" as cover; status shows Dived and Done.                                                                                                   |
+| Turn banner   | `ui/Overlays.tsx`                                  | Day, army and computer marker; "Out of fuel" lists the units lost as the turn began.                                                                                                                                                |
+| Build menus   | `ui/Menus.tsx`                                     | Bases, ports and airports list the units they build, with costs and affordability.                                                                                                                                                  |
+| Saves         | `saves/*`, `ui/GameDialog.tsx`                     | Autosave resumes after a reload; export and import of a file; a full storage message.                                                                                                                                               |
+| Computer seat | `session/aiController.ts`                          | The computer plays a full turn at a watchable pace and hands back.                                                                                                                                                                  |
+| Commanders    | `ui/NewGameDialog.tsx`, `ui/CommanderDetails.tsx`  | Each side shows its commander's portrait, army and colour; the roster greys out a commander another side leads; the briefing matches the commander; Start begins the game with them.                                                |
+| Powers        | `ui/TopBar.tsx`, `ui/Menus.tsx`, `ui/Overlays.tsx` | The meter fills in the army's colour and glows when full; the power button, P and the map menu activate it; the banner shows for either side; the meter shows the power's name while active.                                        |
+| Army colours  | `render/spriteCache.ts`, `session/armies.ts`       | Units and buildings are drawn in their commander's colours; an older save keeps its faction colours.                                                                                                                                |
+| Layout        | `ui/*`, `styles.css`                               | Mouse and keyboard controls; usable down to tablet width.                                                                                                                                                                           |
 
 ## 7. Adding content
 
@@ -310,6 +358,8 @@ with no edits:
 - each property only builds units that can stand on it;
 - every unit and terrain has its own art. A new unit without art fails here; the
   game would draw a placeholder, but shipped content must have real art;
+- every commander has an innate ability, a power, a meter source it charges fast from,
+  an army and colours of its own, a description, and a portrait;
 - every sprite passes the art rules.
 
 What a contributor adds:
@@ -329,6 +379,9 @@ What a contributor adds:
 - The AI never uses transports, so there are no tests for it loading or
   unloading units. Landers and transport copters are tested in the engine.
 - Hiding dived units from the opponent waits for fog of war, so it has no test.
+- Commander balance is measured by having the computer play every pairing, which is
+  not a test: it changes with the AI. The AI uses its power as soon as the meter is full
+  and does not time it.
 - Line coverage is not measured.
 
 ## 9. Keeping this document current
