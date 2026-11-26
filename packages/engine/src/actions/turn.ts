@@ -45,7 +45,8 @@ function repairUnit(ruleset: CompiledRuleset, draft: Draft, id: UnitId): void {
 function burnFuel(ruleset: CompiledRuleset, draft: Draft, ids: readonly UnitId[]): void {
   for (const id of ids) {
     const unit = draft.state.units[id]!;
-    const use = ruleset.units[unit.type]!.fuelPerDay;
+    const def = ruleset.units[unit.type]!;
+    const use = unit.dived ? def.divedFuelPerDay : def.fuelPerDay;
     if (use === 0 || unit.pos === NO_TILE || unit.fuel === 0) continue;
     patchUnit(draft, id, { fuel: unit.fuel > use ? unit.fuel - use : 0 });
   }

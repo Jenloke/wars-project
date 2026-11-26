@@ -72,6 +72,7 @@ export function createGame(ruleset: CompiledRuleset, map: MapData, setup: GameSe
       moved: false,
       cargo: [],
       carrier: NO_UNIT,
+      dived: false,
     };
     occupant[tile] = id;
   }

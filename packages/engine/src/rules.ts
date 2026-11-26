@@ -42,6 +42,11 @@ export function canCaptureAt(
   );
 }
 
+/** True if `unit` can dive now. */
+export function canDiveUnit(ruleset: CompiledRuleset, unit: Unit): boolean {
+  return ruleset.units[unit.type]!.canDive && !unit.dived;
+}
+
 export function canEnterTerrain(
   ruleset: CompiledRuleset,
   state: GameState,

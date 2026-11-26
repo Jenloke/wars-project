@@ -39,6 +39,7 @@ export function applyBuild(
     moved: true,
     cargo: [],
     carrier: NO_UNIT,
+    dived: false,
   });
   writableTiles(draft, 'occupant')[at] = id;
   draft.events.push({ type: 'UnitBuilt', unit: id, at });

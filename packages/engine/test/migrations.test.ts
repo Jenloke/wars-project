@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   migrateSave,
   SAVE_FORMAT,
+  SAVE_MIGRATIONS,
   SAVE_VERSION,
   SaveError,
   type SaveDocument,
@@ -66,6 +67,28 @@ describe('save migrations', () => {
   it('fails loudly on a migration that forgets to bump the version', () => {
     const broken = { 1: (save: SaveDocument) => ({ ...save }) };
     expect(() => migrateSave(v1, broken, 2)).toThrow(/did not produce format 2/);
+  });
+
+  it('gives every unit of a format 1 save a dived flag', () => {
+    const unit = { id: 3, type: 0, owner: 1, pos: 7, cargo: [], carrier: -1 };
+    const state = { schemaVersion: 1, mapId: 'test', units: { 3: unit, 12: { ...unit, id: 12 } } };
+    const migrated = migrateSave(
+      { format: SAVE_FORMAT, version: 1, state, actions: [] },
+      SAVE_MIGRATIONS,
+      2,
+    );
+    expect(JSON.stringify(migrated)).toBe(
+      JSON.stringify({
+        format: SAVE_FORMAT,
+        version: 2,
+        state: {
+          schemaVersion: 2,
+          mapId: 'test',
+          units: { 3: { ...unit, dived: false }, 12: { ...unit, id: 12, dived: false } },
+        },
+        actions: [],
+      }),
+    );
   });
 
   it('has an upgrade step for every version below the current one', () => {

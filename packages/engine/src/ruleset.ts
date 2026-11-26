@@ -21,6 +21,14 @@ export interface RawTransport {
   readonly carries: readonly UnitSelector[];
 }
 
+/** A unit that can submerge (or otherwise hide) from most attackers. */
+export interface RawDive {
+  /** Daily fuel use while dived, in place of the unit's `fuelPerDay`. */
+  readonly fuelPerDay: number;
+  /** Units that can still attack it while it is dived. */
+  readonly attackableBy: readonly UnitSelector[];
+}
+
 export interface RawUnitDef {
   readonly id: string;
   readonly name: string;
@@ -47,6 +55,8 @@ export interface RawUnitDef {
   readonly lostWithoutFuel?: boolean | undefined;
   /** True for units that terrain gives no cover, such as aircraft. */
   readonly ignoresTerrainDefence?: boolean | undefined;
+  /** Present for units that can dive. */
+  readonly dive?: RawDive | undefined;
 }
 
 export interface RawPropertyDef {
@@ -133,6 +143,11 @@ export interface CompiledUnit {
   readonly fuelPerDay: number;
   readonly lostWithoutFuel: boolean;
   readonly ignoresTerrainDefence: boolean;
+  readonly canDive: boolean;
+  /** Daily fuel use while dived. */
+  readonly divedFuelPerDay: number;
+  /** Per attacker unit type: 1 if it can attack this unit while it is dived. */
+  readonly divedAttackers: Uint8Array;
   readonly capacity: number;
   /** Per unit type: 1 if this transport can carry it. */
   readonly carries: Uint8Array;
@@ -284,6 +299,10 @@ export function compileRuleset(raw: RawRuleset): CompiledRuleset {
       u.transport === undefined
         ? new Uint8Array(unitCount)
         : selectUnits(raw.units, u.transport.carries, `Unit "${u.id}" transport`);
+    const divedAttackers =
+      u.dive === undefined
+        ? new Uint8Array(unitCount)
+        : selectUnits(raw.units, u.dive.attackableBy, `Unit "${u.id}" dive`);
     return {
       id: u.id,
       name: u.name,
@@ -300,6 +319,9 @@ export function compileRuleset(raw: RawRuleset): CompiledRuleset {
       fuelPerDay: u.fuelPerDay ?? 0,
       lostWithoutFuel: u.lostWithoutFuel ?? false,
       ignoresTerrainDefence: u.ignoresTerrainDefence ?? false,
+      canDive: u.dive !== undefined,
+      divedFuelPerDay: u.dive?.fuelPerDay ?? u.fuelPerDay ?? 0,
+      divedAttackers,
       capacity: u.transport?.capacity ?? 0,
       carries,
     };

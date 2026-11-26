@@ -82,7 +82,7 @@ describe('save and load', () => {
     const save = createSave(rules, playedGame(1), SAVED_AT);
     expect(save).toMatchObject({
       format: 'tactics-save',
-      version: 1,
+      version: 2,
       rulesetId: 'test',
       savedAt: SAVED_AT,
     });

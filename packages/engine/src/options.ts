@@ -1,7 +1,14 @@
-import { weaponBaseDamage } from './combat';
+import { baseDamageOn } from './combat';
 import { neighbours } from './grid';
 import { NO_DAMAGE, type CompiledRuleset } from './ruleset';
-import { canCaptureAt, canDropAt, canEnterTerrain, canJoinUnits, canLoadInto } from './rules';
+import {
+  canCaptureAt,
+  canDiveUnit,
+  canDropAt,
+  canEnterTerrain,
+  canJoinUnits,
+  canLoadInto,
+} from './rules';
 import { NO_TILE, NO_UNIT, type GameState, type TileIndex, type Unit, type UnitId } from './types';
 import { isIndirect, unitCost } from './units';
 
@@ -21,6 +28,8 @@ export interface UnitOptions {
   readonly canSupply: boolean;
   readonly canJoin: boolean;
   readonly canLoad: boolean;
+  readonly canDive: boolean;
+  readonly canSurface: boolean;
   readonly attackTargets: readonly TileIndex[];
   readonly unloads: readonly UnloadOption[];
 }
@@ -62,7 +71,7 @@ export function attackTargetsFrom(
       if (targetId === NO_UNIT) continue;
       const target = units[targetId]!;
       if (target.owner === unit.owner) continue;
-      if (weaponBaseDamage(ruleset, unit.type, unit.ammo, target.type) === NO_DAMAGE) continue;
+      if (baseDamageOn(ruleset, unit, target) === NO_DAMAGE) continue;
       targets.push(tile);
     }
   }
@@ -100,6 +109,8 @@ export function getUnitOptions(
       canSupply: false,
       canJoin: canJoinUnits(ruleset, unit, other),
       canLoad: canLoadInto(ruleset, unit, other),
+      canDive: false,
+      canSurface: false,
       attackTargets: [],
       unloads: [],
     };
@@ -139,6 +150,8 @@ export function getUnitOptions(
     canSupply,
     canJoin: false,
     canLoad: false,
+    canDive: canDiveUnit(ruleset, unit),
+    canSurface: unit.dived,
     attackTargets: attackTargetsFrom(ruleset, state, unit, destination, hasMoved),
     unloads,
   };

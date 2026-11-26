@@ -10,7 +10,7 @@ export const SAVE_FORMAT = 'tactics-save';
  * version in `migrations.ts`, whenever the shape of `SaveData`, `GameState`,
  * `Action` or `MapData` changes.
  */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 /**
  * Everything needed to reproduce a game exactly: the map and setup rebuild the
