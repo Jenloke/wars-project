@@ -52,6 +52,12 @@ interface SpriteSvgProps {
   readonly mono?: boolean | undefined;
   /** Mirrors it, as the map does for units facing left. */
   readonly flip?: boolean | undefined;
+  /**
+   * Draws a thin edge round the whole sprite in the theme's contrast colour
+   * (`--icon-edge`), so its light parts show on a light panel and its dark
+   * parts on a dark one, without changing the colours that say what it is.
+   */
+  readonly edge?: boolean | undefined;
   /** Accessible name. Omit when the sprite is beside text that says the same. */
   readonly label?: string | undefined;
   readonly className?: string | undefined;
@@ -67,12 +73,14 @@ export function SpriteSvg({
   size = '1em',
   mono,
   flip,
+  edge,
   label,
   className,
 }: SpriteSvgProps) {
   const art = sprites.resolve(typeof sprite === 'string' ? [sprite] : sprite);
   if (art === undefined) return null;
   const colours = ramp ?? TEAM_RAMPS[NEUTRAL_VARIANT]!;
+  const shapes = shapesOf(art);
   return (
     <svg
       className={className === undefined ? 'sprite' : `sprite ${className}`}
@@ -85,7 +93,15 @@ export function SpriteSvg({
       focusable="false"
     >
       <g transform={flip ? `matrix(-1 0 0 1 ${GRID} 0)` : undefined}>
-        {shapesOf(art).map((shape, i) => (
+        {edge && (
+          // The silhouette, stroked wider than the art; only its rim shows.
+          <g className="sprite-edge">
+            {shapes.map((shape, i) => (
+              <polygon key={i} points={shape.points} />
+            ))}
+          </g>
+        )}
+        {shapes.map((shape, i) => (
           <polygon
             key={i}
             points={shape.points}
@@ -102,7 +118,10 @@ interface IconProps extends Omit<SpriteSvgProps, 'sprite'> {
   readonly name: IconName;
 }
 
-/** An interface icon (see `icons.ts`). */
-export function Icon({ name, ...props }: IconProps) {
-  return <SpriteSvg sprite={iconSprite(name)} {...props} />;
+/**
+ * An interface icon (see `icons.ts`). It has an edge in the theme's contrast
+ * colour unless it is drawn `mono` in the text colour.
+ */
+export function Icon({ name, edge, ...props }: IconProps) {
+  return <SpriteSvg sprite={iconSprite(name)} edge={edge ?? !props.mono} {...props} />;
 }

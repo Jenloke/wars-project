@@ -30,6 +30,9 @@
   --thumb: rgb(0 0 0 / 28%);
   --pill: rgb(12 18 26 / 72%);
   --scrim: rgb(10 14 20 / 70%);
+  /* The edge drawn round interface icons, so every part of them shows on the panels. */
+  --icon-edge: #ffffff;
+  --icon-edge-opacity: 0.28;
   --shadow: 0 6px 18px rgb(0 0 0 / 35%);
   --shadow-strong: 0 16px 48px rgb(0 0 0 / 50%);
   --radius: 10px;
@@ -62,6 +65,8 @@
   --thumb: rgb(20 35 55 / 10%);
   --pill: rgb(255 255 255 / 90%);
   --scrim: rgb(25 35 50 / 45%);
+  --icon-edge: #16202b;
+  --icon-edge-opacity: 0.8;
   --shadow: 0 6px 18px rgb(30 45 70 / 16%);
   --shadow-strong: 0 16px 48px rgb(30 45 70 / 28%);
   color-scheme: light;
@@ -137,7 +142,24 @@ button.primary:focus-visible {
 .sprite {
   display: inline-block;
   flex-shrink: 0;
+  overflow: visible;
   vertical-align: -0.15em;
+}
+
+/*
+ * An icon's edge: its silhouette stroked a fixed width at any size, faded as one
+ * layer so overlapping polygons do not darken the rim.
+ */
+.sprite-edge {
+  opacity: var(--icon-edge-opacity);
+  fill: var(--icon-edge);
+  stroke: var(--icon-edge);
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
+}
+
+.sprite-edge polygon {
+  vector-effect: non-scaling-stroke;
 }
 
 kbd {
