@@ -979,7 +979,7 @@ button.with-icon .sprite {
   max-height: calc(100dvh - 32px);
   padding: 0;
   color: var(--text);
-  background: var(--panel);
+  background: var(--panel-solid);
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: 0 16px 48px rgb(0 0 0 / 50%);
@@ -1002,10 +1002,34 @@ button.with-icon .sprite {
 }
 
 .icon-button {
+  display: inline-grid;
+  place-items: center;
   min-width: 36px;
   padding: 0;
-  font-size: 20px;
-  line-height: 1;
+}
+
+.icon-button .sprite {
+  width: 18px;
+  height: 18px;
+}
+
+.dialog-header .icon-button {
+  background: transparent;
+  border-color: transparent;
+}
+
+.dialog-header .icon-button .sprite {
+  width: 13px;
+  height: 13px;
+}
+
+.dialog-header .icon-button:hover {
+  background: rgb(255 255 255 / 9%);
+}
+
+.icon-button.danger:hover:not(:disabled),
+.icon-button.danger:focus-visible {
+  border-color: var(--danger);
 }
 
 .dialog-notice {
@@ -1155,9 +1179,15 @@ button.with-icon .sprite {
 .segment span {
   display: flex;
   align-items: center;
+  gap: 6px;
   min-height: 34px;
   padding: 0 14px;
   cursor: pointer;
+}
+
+.segment .sprite {
+  width: 16px;
+  height: 16px;
 }
 
 .segment + .segment span {

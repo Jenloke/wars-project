@@ -13,12 +13,15 @@ import {
 } from '../session/game';
 import { CommanderDetails, summaryOf } from './CommanderDetails';
 import { confirmReplace } from './confirmReplace';
+import type { IconName } from './icons';
 import { Portrait } from './Portrait';
+import { Icon } from './SpriteSvg';
 
 /** Who can play a seat from this screen. Network play adds remote seats later. */
 type Seat = Extract<ControllerKind, 'local' | 'ai'>;
 
 const SEAT_LABELS: Readonly<Record<Seat, string>> = { local: 'Human', ai: 'Computer' };
+const SEAT_ICONS: Readonly<Record<Seat, IconName>> = { local: 'human', ai: 'computer' };
 const SEAT_KINDS: readonly Seat[] = ['local', 'ai'];
 
 /** The default commander may lead any number of sides; the others one each. */
@@ -127,7 +130,7 @@ export function NewGameDialog() {
       <header className="dialog-header">
         <h2 id="new-game-title">New game</h2>
         <button type="button" className="icon-button" onClick={close} aria-label="Close">
-          ×
+          <Icon name="close" />
         </button>
       </header>
 
@@ -180,7 +183,10 @@ export function NewGameDialog() {
                           checked={seat === kind}
                           onChange={() => chooseSeat(index, kind)}
                         />
-                        <span>{SEAT_LABELS[kind]}</span>
+                        <span>
+                          <Icon name={SEAT_ICONS[kind]} mono />
+                          {SEAT_LABELS[kind]}
+                        </span>
                       </label>
                     ))}
                   </div>
@@ -233,7 +239,8 @@ export function NewGameDialog() {
           <button type="button" onClick={close}>
             Cancel
           </button>
-          <button type="submit" className="primary">
+          <button type="submit" className="primary with-icon">
+            <Icon name="newGame" mono />
             Start
           </button>
         </footer>

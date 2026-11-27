@@ -7,6 +7,7 @@ import { SLOT_IDS, SLOT_LABELS, type SlotId, type SlotSummary } from '../saves/s
 import { armiesFor } from '../session/armies';
 import { ruleset, saveStore, savesPersist, session } from '../session/game';
 import { confirmReplace } from './confirmReplace';
+import { Icon } from './SpriteSvg';
 
 interface Status {
   readonly tone: 'info' | 'error';
@@ -146,7 +147,7 @@ export function GameDialog() {
       <header className="dialog-header">
         <h2 id="game-dialog-title">Save and load</h2>
         <button type="button" className="icon-button" onClick={close} aria-label="Close">
-          ×
+          <Icon name="close" />
         </button>
       </header>
 
@@ -178,27 +179,33 @@ export function GameDialog() {
                 {slot !== 'auto' && (
                   <button
                     type="button"
+                    className="with-icon"
                     onClick={() => saveTo(slot)}
                     aria-label={`Save to ${label}`}
                   >
+                    <Icon name="save" />
                     Save
                   </button>
                 )}
                 <button
                   type="button"
+                  className="with-icon"
                   onClick={() => loadFrom(slot)}
                   disabled={summary === undefined}
                   aria-label={`Load ${label}`}
                 >
+                  <Icon name="open" />
                   Load
                 </button>
                 <button
                   type="button"
+                  className="icon-button danger"
                   onClick={() => remove(slot)}
                   disabled={summary === undefined}
                   aria-label={`Delete ${label}`}
+                  title="Delete"
                 >
-                  Delete
+                  <Icon name="delete" />
                 </button>
               </div>
             </li>
@@ -211,10 +218,12 @@ export function GameDialog() {
       </p>
 
       <footer className="dialog-footer">
-        <button type="button" onClick={exportFile}>
+        <button type="button" className="with-icon" onClick={exportFile}>
+          <Icon name="export" />
           Export to file
         </button>
-        <button type="button" onClick={() => fileRef.current?.click()}>
+        <button type="button" className="with-icon" onClick={() => fileRef.current?.click()}>
+          <Icon name="import" />
           Import file…
         </button>
         <input
@@ -224,7 +233,8 @@ export function GameDialog() {
           hidden
           onChange={(event) => void importFile(event)}
         />
-        <button type="button" className="primary" onClick={openNewGameDialog}>
+        <button type="button" className="primary with-icon" onClick={openNewGameDialog}>
+          <Icon name="newGame" mono />
           New game…
         </button>
       </footer>
