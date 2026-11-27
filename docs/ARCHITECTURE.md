@@ -731,7 +731,11 @@ Sprites are vector art all the way to the screen: there is no build step and no 
     `svg/icon`, listed in `ui/icons.ts`; the capture flag uses team placeholders so it
     shows its owner. Units and terrain are shown by the same visual data the renderer
     uses (`ui/spriteArt.ts`), autotiled terrain by its east-west piece, so new content
-    appears in menus and info cards as soon as it has art.
+    appears in menus and info cards as soon as it has art. Icons keep their own colours
+    in both themes, since the colours carry their meaning; instead each is drawn over its
+    silhouette stroked in the theme's `--icon-edge` colour (dark on light panels, a faint
+    light rim on dark ones), so an icon that is mostly white or mostly grey still shows.
+    Icons drawn `mono`, and unit and terrain art, have no edge.
 
 ## 9. Renderer and UI
 
@@ -761,6 +765,12 @@ targeting | unloading | buildMenu | mapMenu`), selected unit, cached reachable s
   state lives in
   `GameSession`, not in the store; React subscribes to it through
   `useSyncExternalStore`.
+- **Themes** (`ui/theme.ts`): a light and a dark theme. The toolbar switch steps
+  through following the system, light and dark; the choice is kept in local storage
+  and applied as `data-theme` on the root element before the first render. Every
+  colour in `styles.css` is a token defined for both themes, with the accent split into
+  its fill and its use as text, and army names as text blend the army's colour toward
+  the text colour. The renderer draws the map's surroundings in the theme's colour.
 - **Input**: mouse (click select/confirm, right-click cancel, drag pan, wheel zoom) and
   keyboard (arrows/WASD cursor, Enter/Space confirm, Esc cancel, E map menu, P power).
   During a computer turn the cursor still moves for inspection, but no orders are
