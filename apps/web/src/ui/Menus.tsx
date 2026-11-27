@@ -118,7 +118,7 @@ function MapMenu() {
     });
   }
   items.push(
-    { key: 'end', label: 'End turn', icon: <Icon name="endTurn" />, onSelect: endTurn },
+    { key: 'end', label: 'End turn', icon: <Icon name="endTurn" mono />, onSelect: endTurn },
     { key: 'saves', label: 'Save and load', icon: <Icon name="save" />, onSelect: openGameDialog },
     {
       key: 'new',

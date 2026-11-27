@@ -1,6 +1,7 @@
 import type { GameState, PlayerIndex } from '@tactics/engine';
 import { armiesOf } from '../session/armies';
 import { ruleset } from '../session/game';
+import { armyStyle } from './armyStyle';
 import { Icon } from './SpriteSvg';
 
 interface PowerGaugeProps {
@@ -20,8 +21,8 @@ export function PowerGauge({ state, player }: PowerGaugeProps) {
   if (side.powerActive) {
     return (
       <span
-        className="power-active"
-        style={{ borderColor: army.color, color: army.color }}
+        className="power-active army-ink"
+        style={armyStyle(army.color)}
         title={`${power.name} is active`}
       >
         <Icon name="power" />

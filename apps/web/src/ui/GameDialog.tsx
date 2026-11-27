@@ -147,7 +147,7 @@ export function GameDialog() {
       <header className="dialog-header">
         <h2 id="game-dialog-title">Save and load</h2>
         <button type="button" className="icon-button" onClick={close} aria-label="Close">
-          <Icon name="close" />
+          <Icon name="close" mono />
         </button>
       </header>
 

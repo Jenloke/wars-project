@@ -11,6 +11,7 @@ import {
   session,
   startNewGame,
 } from '../session/game';
+import { armyStyle } from './armyStyle';
 import { CommanderDetails, summaryOf } from './CommanderDetails';
 import { confirmReplace } from './confirmReplace';
 import type { IconName } from './icons';
@@ -130,7 +131,7 @@ export function NewGameDialog() {
       <header className="dialog-header">
         <h2 id="new-game-title">New game</h2>
         <button type="button" className="icon-button" onClick={close} aria-label="Close">
-          <Icon name="close" />
+          <Icon name="close" mono />
         </button>
       </header>
 
@@ -166,7 +167,9 @@ export function NewGameDialog() {
                   >
                     <Portrait sprite={army.portrait} ramp={army.ramp} size={40} />
                     <span className="seat-names" id={labelId}>
-                      <strong style={{ color: army.color }}>{army.name}</strong>
+                      <strong className="army-ink" style={armyStyle(army.color)}>
+                        {army.name}
+                      </strong>
                       <span className="muted">
                         {army.commanderName}
                         {index === 0 && ' · moves first'}
@@ -197,7 +200,10 @@ export function NewGameDialog() {
 
           <section className="roster" aria-labelledby="roster-title">
             <h3 id="roster-title" className="roster-title">
-              Commander for <span style={{ color: editingArmy.color }}>{editingArmy.name}</span>
+              Commander for{' '}
+              <span className="army-ink" style={armyStyle(editingArmy.color)}>
+                {editingArmy.name}
+              </span>
             </h3>
             <div className="roster-grid" role="radiogroup" aria-labelledby="roster-title">
               {COMMANDER_CHOICES.map((id) => {

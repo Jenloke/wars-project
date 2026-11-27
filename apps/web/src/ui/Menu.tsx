@@ -89,7 +89,7 @@ export function Menu({ title, items, aside, className }: MenuProps) {
           aria-label="Cancel"
           title="Cancel (Esc)"
         >
-          <Icon name="close" />
+          <Icon name="close" mono />
         </button>
       </div>
       {items.map((item) => (

@@ -1,6 +1,7 @@
 import { NO_TILE, NO_UNIT, type TileIndex, type UnitId, type UnitOptions } from '@tactics/engine';
 import { create } from 'zustand';
 import { NO_INSETS, type Camera, type Insets, type Viewport } from '../render/camera';
+import type { Theme, ThemeChoice } from '../ui/theme';
 
 /**
  * Where the player is in the select -> move -> act flow.
@@ -43,6 +44,9 @@ export interface UiState {
   readonly viewport: Viewport;
   /** Edges of the board covered by the HUD, in CSS pixels. */
   readonly hudInsets: Insets;
+  /** The theme the player picked, and the one in effect once `system` is resolved. */
+  readonly themeChoice: ThemeChoice;
+  readonly theme: Theme;
 }
 
 export const IDLE_SELECTION = {
@@ -65,6 +69,8 @@ export const useUiStore = create<UiState>(() => ({
   camera: { x: 0, y: 0, zoom: 1 },
   viewport: { width: 1, height: 1, dpr: 1 },
   hudInsets: NO_INSETS,
+  themeChoice: 'system',
+  theme: 'dark',
 }));
 
 /** True for modes where a DOM menu has keyboard focus. */

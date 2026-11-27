@@ -1,3 +1,8 @@
+/*
+ * Theme tokens. Dark is the default; `data-theme="light"` on the root element
+ * (set by ui/theme.ts) switches every colour at once. Components use only
+ * these tokens, never literal colours, so both themes stay complete.
+ */
 :root {
   --bg: #121a24;
   --panel: rgb(20 29 40 / 90%);
@@ -7,14 +12,59 @@
   --border-soft: rgb(255 255 255 / 9%);
   --text: #e8edf3;
   --muted: #8a9bb0;
+  /* The accent as a fill (buttons), as text and borders on panels, and as a soft tint. */
   --accent: #ffd23f;
   --accent-text: #1d1f26;
+  --accent-ink: #ffd23f;
+  --accent-soft: rgb(255 210 63 / 14%);
   --danger: #ff5a4a;
   --good: #8cc257;
+  --fuel: #e8a33a;
+  --ammo: #b4c3d8;
+  /* Overlays on panels: hover, quiet fills, gauge tracks and empty segments. */
+  --hover: rgb(255 255 255 / 9%);
+  --tint: rgb(255 255 255 / 6%);
+  --track: rgb(0 0 0 / 40%);
+  --track-edge: rgb(255 255 255 / 7%);
+  --seg-off: rgb(255 255 255 / 10%);
+  --thumb: rgb(0 0 0 / 28%);
+  --pill: rgb(12 18 26 / 72%);
+  --scrim: rgb(10 14 20 / 70%);
+  --shadow: 0 6px 18px rgb(0 0 0 / 35%);
+  --shadow-strong: 0 16px 48px rgb(0 0 0 / 50%);
   --radius: 10px;
   --hud-gap: 8px;
-  --shadow: 0 6px 18px rgb(0 0 0 / 35%);
   color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #e6ebf1;
+  --panel: rgb(255 255 255 / 92%);
+  --panel-solid: #ffffff;
+  --panel-raised: #eef2f7;
+  --border: #c3cdd9;
+  --border-soft: rgb(20 35 55 / 12%);
+  --text: #16202b;
+  --muted: #586678;
+  --accent: #ffc929;
+  --accent-text: #1d1f26;
+  --accent-ink: #94650a;
+  --accent-soft: rgb(255 190 0 / 20%);
+  --danger: #cf3426;
+  --good: #3b8526;
+  --fuel: #d0831a;
+  --ammo: #6d819c;
+  --hover: rgb(20 35 55 / 7%);
+  --tint: rgb(20 35 55 / 6%);
+  --track: rgb(20 35 55 / 14%);
+  --track-edge: rgb(20 35 55 / 8%);
+  --seg-off: rgb(20 35 55 / 12%);
+  --thumb: rgb(20 35 55 / 10%);
+  --pill: rgb(255 255 255 / 90%);
+  --scrim: rgb(25 35 50 / 45%);
+  --shadow: 0 6px 18px rgb(30 45 70 / 16%);
+  --shadow-strong: 0 16px 48px rgb(30 45 70 / 28%);
+  color-scheme: light;
 }
 
 * {
@@ -78,6 +128,11 @@ button.primary:focus-visible {
   color: var(--muted);
 }
 
+/* Text in an army's colour (set as --army on it or an ancestor), legible on either theme. */
+.army-ink {
+  color: color-mix(in srgb, var(--army) 72%, var(--text));
+}
+
 /* Sprites and icons drawn as inline SVG; sized by their text unless a rule says otherwise. */
 .sprite {
   display: inline-block;
@@ -89,7 +144,7 @@ kbd {
   padding: 1px 5px;
   font: 600 11px/1.3 system-ui;
   color: var(--muted);
-  background: rgb(255 255 255 / 5%);
+  background: var(--tint);
   border: 1px solid var(--border);
   border-radius: 4px;
 }
@@ -165,7 +220,7 @@ kbd {
   justify-content: center;
   min-width: 46px;
   padding: 4px 6px;
-  background: rgb(255 255 255 / 6%);
+  background: var(--tint);
   border-radius: 7px;
 }
 
@@ -259,7 +314,7 @@ kbd {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--army);
+  color: color-mix(in srgb, var(--army) 72%, var(--text));
   font-weight: 700;
 }
 
@@ -328,9 +383,9 @@ kbd {
   width: 76px;
   height: 8px;
   overflow: hidden;
-  background: rgb(0 0 0 / 40%);
+  background: var(--track);
   border-radius: 999px;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%);
+  box-shadow: inset 0 0 0 1px var(--track-edge);
 }
 
 .power-gauge.full .power-track {
@@ -371,9 +426,9 @@ kbd {
   padding: 0 10px 0 6px;
   font-size: 12px;
   font-weight: 700;
-  color: var(--accent);
-  background: rgb(255 210 63 / 14%);
-  border-color: var(--accent);
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-color: var(--accent-ink);
   border-radius: 999px;
   animation: power-pulse 1.4s ease-in-out infinite alternate;
 }
@@ -411,7 +466,8 @@ kbd {
   font-size: 13px;
   white-space: nowrap;
   text-overflow: ellipsis;
-  background: rgb(12 18 26 / 72%);
+  background: var(--pill);
+  border: 1px solid var(--border-soft);
   border-radius: 999px;
 }
 
@@ -438,12 +494,12 @@ kbd {
 }
 
 .tool:hover:not(:disabled) {
-  background: rgb(255 255 255 / 9%);
+  background: var(--hover);
   border-color: transparent;
 }
 
 .tool:focus-visible {
-  border-color: var(--accent);
+  border-color: var(--accent-ink);
 }
 
 .tool .sprite {
@@ -511,7 +567,7 @@ kbd {
   width: 40px;
   height: 40px;
   overflow: hidden;
-  background: rgb(0 0 0 / 28%);
+  background: var(--thumb);
   border-radius: 7px;
 }
 
@@ -533,7 +589,7 @@ kbd {
 
 .intel-owner {
   overflow: hidden;
-  color: var(--army, var(--muted));
+  color: color-mix(in srgb, var(--army, var(--muted)) 72%, var(--text));
   font-size: 12px;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -585,11 +641,11 @@ kbd {
 }
 
 .gauge-row.fuel {
-  --fill: #e8a33a;
+  --fill: var(--fuel);
 }
 
 .gauge-row.ammo {
-  --fill: #b4c3d8;
+  --fill: var(--ammo);
 }
 
 .gauge-row.capture {
@@ -606,9 +662,9 @@ kbd {
   gap: 2px;
   height: 9px;
   overflow: hidden;
-  background: rgb(0 0 0 / 40%);
+  background: var(--track);
   border-radius: 3px;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 6%);
+  box-shadow: inset 0 0 0 1px var(--track-edge);
 }
 
 .gauge.segmented {
@@ -618,7 +674,7 @@ kbd {
 
 .seg {
   flex: 1;
-  background: rgb(255 255 255 / 10%);
+  background: var(--seg-off);
   border-radius: 2px;
 }
 
@@ -641,7 +697,7 @@ kbd {
   background: repeating-linear-gradient(
     -45deg,
     color-mix(in srgb, var(--fill) 55%, transparent) 0 3px,
-    rgb(0 0 0 / 35%) 3px 5px
+    var(--track) 3px 5px
   );
 }
 
@@ -698,7 +754,7 @@ kbd {
   font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  background: rgb(255 255 255 / 6%);
+  background: var(--tint);
   border-radius: 999px;
 }
 
@@ -785,7 +841,7 @@ kbd {
 }
 
 .forecast-row.lethal strong {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .forecast-counter {
@@ -805,7 +861,7 @@ kbd {
   background: var(--panel-solid);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  box-shadow: var(--shadow-strong);
 }
 
 .menu-header {
@@ -846,7 +902,7 @@ kbd {
 }
 
 .menu-close:hover:not(:disabled) {
-  background: rgb(255 255 255 / 9%);
+  background: var(--hover);
   border-color: transparent;
 }
 
@@ -863,13 +919,13 @@ kbd {
 }
 
 .menu-item:hover:not(:disabled) {
-  background: rgb(255 255 255 / 7%);
+  background: var(--hover);
   border-color: transparent;
 }
 
 .menu-item:focus-visible {
-  background: rgb(255 210 63 / 12%);
-  border-color: var(--accent);
+  background: var(--accent-soft);
+  border-color: var(--accent-ink);
 }
 
 .menu-icon {
@@ -902,7 +958,7 @@ kbd {
 }
 
 .menu-detail {
-  color: var(--accent);
+  color: var(--accent-ink);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -944,7 +1000,7 @@ kbd {
 }
 
 .turn-banner-title strong {
-  color: var(--army);
+  color: color-mix(in srgb, var(--army) 72%, var(--text));
 }
 
 .turn-banner-day {
@@ -985,7 +1041,7 @@ kbd {
   background: var(--panel);
   border: 3px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 10px 30px rgb(0 0 0 / 50%);
+  box-shadow: var(--shadow-strong);
   pointer-events: none;
   transform: translate(-50%, -50%);
   animation: power-banner 2s ease-out forwards;
@@ -1038,7 +1094,7 @@ kbd {
   z-index: 10;
   display: grid;
   place-items: center;
-  background: rgb(10 14 20 / 70%);
+  background: var(--scrim);
 }
 
 .game-over-card {
@@ -1047,7 +1103,7 @@ kbd {
   border: 1px solid var(--border);
   border-top: 4px solid var(--army);
   border-radius: 14px;
-  box-shadow: 0 16px 48px rgb(0 0 0 / 50%);
+  box-shadow: var(--shadow-strong);
   text-align: center;
 }
 
@@ -1097,11 +1153,11 @@ button.with-icon .sprite {
   background: var(--panel-solid);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 16px 48px rgb(0 0 0 / 50%);
+  box-shadow: var(--shadow-strong);
 }
 
 .game-dialog::backdrop {
-  background: rgb(10 14 20 / 70%);
+  background: var(--scrim);
 }
 
 .dialog-header {
@@ -1139,7 +1195,7 @@ button.with-icon .sprite {
 }
 
 .dialog-header .icon-button:hover {
-  background: rgb(255 255 255 / 9%);
+  background: var(--hover);
 }
 
 .icon-button.danger:hover:not(:disabled),

@@ -7,10 +7,12 @@ import { ruleset, session } from '../session/game';
 import { useUiStore, type Mode } from '../store/uiStore';
 import { armyStyle } from './armyStyle';
 import { useGameState } from './hooks';
+import type { IconName } from './icons';
 import { Portrait } from './Portrait';
 import { PowerGauge } from './PowerGauge';
 import { sideStats } from './sides';
 import { Icon } from './SpriteSvg';
+import { cycleTheme, THEME_LABELS, type ThemeChoice } from './theme';
 
 const HINTS: Readonly<Record<Mode, string>> = {
   idle: 'Select a unit or a base',
@@ -161,9 +163,16 @@ function Hint({ state }: { state: GameState }) {
   );
 }
 
+const THEME_ICONS = {
+  system: 'theme',
+  light: 'day',
+  dark: 'moon',
+} as const satisfies Record<ThemeChoice, IconName>;
+
 function Toolbar({ canOrder }: { canOrder: boolean }) {
   const mode = useUiStore((ui) => ui.mode);
   const zoom = useUiStore((ui) => ui.camera.zoom);
+  const themeChoice = useUiStore((ui) => ui.themeChoice);
   return (
     <div className="hud-tools" role="toolbar" aria-label="Game">
       <div className="hud-panel tool-group">
@@ -186,6 +195,15 @@ function Toolbar({ canOrder }: { canOrder: boolean }) {
           title="Zoom in (+)"
         >
           <Icon name="zoomIn" />
+        </button>
+        <button
+          type="button"
+          className="tool"
+          onClick={cycleTheme}
+          aria-label={THEME_LABELS[themeChoice]}
+          title={`${THEME_LABELS[themeChoice]} (click to change)`}
+        >
+          <Icon name={THEME_ICONS[themeChoice]} />
         </button>
         <button
           type="button"

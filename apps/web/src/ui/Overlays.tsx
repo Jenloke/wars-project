@@ -104,13 +104,13 @@ export function PowerBanner() {
     <div
       key={shown.serial}
       className="power-banner"
-      style={{ borderColor: army.color }}
+      style={{ ...armyStyle(army.color), borderColor: army.color }}
       role="status"
       onAnimationEnd={() => setShown(null)}
     >
       <Portrait sprite={army.portrait} ramp={army.ramp} size={72} />
       <div>
-        <div className="power-banner-name" style={{ color: army.color }}>
+        <div className="power-banner-name army-ink">
           <Icon name="power" />
           {power.name}
         </div>
@@ -133,7 +133,7 @@ export function GameOver() {
           <Portrait sprite={army.portrait} ramp={army.ramp} size={96} label={army.commanderName} />
           <Icon name="trophy" className="game-over-trophy" />
         </div>
-        <h1 id="game-over-title" style={{ color: army.color }}>
+        <h1 id="game-over-title" className="army-ink">
           {army.name} wins
         </h1>
         <p>{REASONS[state.status.reason]}</p>

@@ -5,6 +5,7 @@ import {
   type ChargePace,
   type CommanderSummary,
 } from '@tactics/content';
+import { armyStyle } from './armyStyle';
 
 const PACE_PIPS: Readonly<Record<ChargePace, number>> = { fast: 3, steady: 2, slow: 1, none: 0 };
 const PACE_WORDS: Readonly<Record<ChargePace, string>> = {
@@ -43,7 +44,10 @@ export function CommanderDetails({ commander, army, color }: CommanderDetailsPro
       <header>
         <h3>{summary.name}</h3>
         <p className="muted">
-          {profile.title} · <span style={{ color }}>{army}</span>
+          {profile.title} ·{' '}
+          <span className="army-ink" style={armyStyle(color)}>
+            {army}
+          </span>
         </p>
       </header>
       <p className="commander-bio">{profile.bio}</p>
