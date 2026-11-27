@@ -778,27 +778,33 @@ targeting | unloading | buildMenu | mapMenu`), selected unit, cached reachable s
   at a time; the default Field Officer may lead several. It starts from the current
   game's choices when they fit, else you against the computer with a different
   commander per side.
-- **Powers**: the army card shows the side to move's power meter filling in the army's
-  colour; once full, it becomes a button named after the power (also P and the first
-  item of the map menu) that activates it on a human turn. While it is active the meter
-  shows the power's name. A banner with the commander's portrait announces every
-  activation, the computer's included. The other sides' chips carry their own meters, and
-  the unit card shows Move and Range as the unit's commander changes them, green when
-  raised and red when lowered, with the unit's own value beside them.
+- **Powers**: each side's row in the commanders card has its power meter filling in the
+  army's colour; once the side to move's meter is full, it becomes a button named after
+  the power (also P and the first item of the map menu) that activates it on a human
+  turn. While it is active the meter shows the power's name. A banner with the
+  commander's portrait announces every activation, the computer's included. The unit
+  card shows Move and Range as the unit's commander changes them, green when raised and
+  red when lowered, with the unit's own value beside them.
 - **Layout**: the canvas fills the window and the HUD floats over it; clicks between its
   panels reach the map. Positions come from pure functions in `ui/hudLayout.ts`.
-  - _Command bar_ (top): one card for the side to move (portrait, army and commander, day,
-    funds, power), a portrait chip per other side, a hint for the current step, and icon
+  - _Command bar_ (top): the commanders card, a hint for the current step, and icon
     buttons for zoom, save and load, and end turn. Its height is the board's top inset.
+    The commanders card has the day and a row per side, the side to move highlighted:
+    portrait, army and commander, funds and income, properties and units (`ui/sides.ts`),
+    and the power meter. A defeated side stays listed, struck through.
   - _Info panel_ (a bottom corner): the unit under the cursor (or the unit being moved, at
-    the end of its path) with its stats as icons, and the tile with its defence stars and,
-    for properties, owner and capture bar. It moves to the other corner when the cursor
-    goes under it.
+    the end of its path) and the tile. HP is a ten-segment gauge, fuel a level bar with
+    the next day's use hatched, and ammo one pip per round, each red when low. Defence is
+    a shield row of star icons with what they are worth: on the tile card, the cut in
+    damage to a unit at full HP; on the unit card, the cover it gets on that tile at its
+    current HP (`ui/intel.ts`, one percent per star per HP pip, as in the damage formula).
+    Properties add the owner and a capture gauge. The panel moves to the other corner
+    when the cursor goes under it.
   - _Menus_ open beside their tile with an icon per order, unit art in the build menu,
     and a close button in the header. The _attack forecast_ is a bubble pointing at the
     target.
-  - Below 900 px the hint is hidden, and below 640 px the commander's name and the end
-    turn label are too.
+  - Below 900 px the hint and income are hidden; below 640 px the side names (kept for
+    screen readers) and the end turn label are too.
 
 ## 10. Testing
 
