@@ -6,7 +6,6 @@ import {
   NO_OWNER,
   NO_TILE,
   NO_UNIT,
-  previewAttack,
   type GameState,
   type TileIndex,
 } from '@tactics/engine';
@@ -143,49 +142,13 @@ function UnitInfo({ state, tile }: { state: GameState; tile: TileIndex }) {
   );
 }
 
-function percentRange(min: number, max: number): string {
-  const scale = 100 / ruleset.rules.maxHp;
-  const low = Math.round(min * scale);
-  const high = Math.round(max * scale);
-  return low === high ? `${low}%` : `${low}-${high}%`;
-}
-
-/** Damage forecast, shown while the player is choosing an attack target. */
-function DamagePreview({ state }: { state: GameState }) {
-  const cursor = useUiStore((ui) => ui.cursor);
-  const unit = useUiStore((ui) => ui.selectedUnit);
-  const path = useUiStore((ui) => ui.path);
-  const attacker = state.units[unit];
-  if (attacker === undefined) return null;
-  const from = path.length > 0 ? path[path.length - 1]! : attacker.pos;
-  const preview = previewAttack(ruleset, state, unit, from, cursor);
-  if (preview === null) return null;
-  return (
-    <section className="info-card damage-preview" aria-live="polite">
-      <h2>Attack forecast</h2>
-      <dl>
-        <dt>Deal</dt>
-        <dd>{percentRange(preview.min, preview.max)}</dd>
-        <dt>Take</dt>
-        <dd>
-          {preview.counterMax === 0
-            ? 'No counter'
-            : percentRange(preview.counterMin, preview.counterMax)}
-        </dd>
-      </dl>
-    </section>
-  );
-}
-
 /** Terrain and unit details for the tile under the cursor. */
 export function InfoPanel() {
   const state = useGameState();
   const cursor = useUiStore((ui) => ui.cursor);
-  const mode = useUiStore((ui) => ui.mode);
   if (cursor === NO_TILE || cursor >= state.terrain.length) return null;
   return (
     <aside className="info-panel">
-      {mode === 'targeting' && <DamagePreview state={state} />}
       <UnitInfo state={state} tile={cursor} />
       <TerrainInfo state={state} tile={cursor} />
     </aside>

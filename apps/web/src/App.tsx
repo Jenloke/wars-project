@@ -1,5 +1,6 @@
 import { useUiStore } from './store/uiStore';
 import { CommandBar } from './ui/CommandBar';
+import { Forecast } from './ui/Forecast';
 import { GameCanvas } from './ui/GameCanvas';
 import { GameDialog } from './ui/GameDialog';
 import { useKeyboardControls } from './ui/hooks';
@@ -18,6 +19,7 @@ export function App() {
       <CommandBar />
       <main className="board">
         <GameCanvas />
+        <Forecast />
         <Menus />
         <TurnBanner />
         <PowerBanner />

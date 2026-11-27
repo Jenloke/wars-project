@@ -465,8 +465,61 @@ kbd {
   font-weight: 400;
 }
 
-.damage-preview {
-  border-color: var(--danger);
+/* Attack forecast: a bubble pointing at the target tile. */
+.forecast {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 10px;
+  font-size: 13px;
+  background: var(--panel-solid);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+
+.forecast::after {
+  position: absolute;
+  top: 100%;
+  left: calc(var(--arrow) - 6px);
+  content: '';
+  border: 6px solid transparent;
+  border-top-color: var(--danger);
+}
+
+.forecast.below::after {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: var(--danger);
+}
+
+.forecast-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.forecast-row .sprite {
+  width: 16px;
+  height: 16px;
+}
+
+.forecast-row strong {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.forecast-row.lethal strong {
+  color: var(--accent);
+}
+
+.forecast-counter {
+  color: var(--danger);
 }
 
 .menu {
