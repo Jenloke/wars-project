@@ -794,22 +794,68 @@ kbd {
 
 .turn-banner {
   position: absolute;
-  top: 76px;
   left: 50%;
   z-index: 1;
-  padding: 8px 20px;
-  background: var(--panel);
-  border: 2px solid var(--border);
-  border-radius: 999px;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 18px 5px 5px;
   white-space: nowrap;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--army) 28%, transparent), transparent 80%),
+    var(--panel-solid);
+  border: 2px solid var(--army);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
   pointer-events: none;
   transform: translateX(-50%);
   animation: banner 1.6s ease-out forwards;
 }
 
+.turn-banner .portrait {
+  border-radius: 999px;
+}
+
+.turn-banner-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.turn-banner-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+}
+
+.turn-banner-title strong {
+  color: var(--army);
+}
+
+.turn-banner-day {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+}
+
+.turn-banner .sprite {
+  width: 18px;
+  height: 18px;
+}
+
 .banner-loss {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.banner-loss .sprite {
+  width: 14px;
+  height: 14px;
 }
 
 .power-banner {
@@ -831,6 +877,9 @@ kbd {
 }
 
 .power-banner-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 26px;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -879,9 +928,11 @@ kbd {
 
 .game-over-card {
   padding: 28px 36px;
-  background: var(--panel);
+  background: var(--panel-solid);
   border: 1px solid var(--border);
+  border-top: 4px solid var(--army);
   border-radius: 14px;
+  box-shadow: 0 16px 48px rgb(0 0 0 / 50%);
   text-align: center;
 }
 
@@ -889,8 +940,31 @@ kbd {
   margin: 0 0 8px;
 }
 
-.game-over-card .portrait {
+.game-over-portrait {
+  position: relative;
+  width: 96px;
   margin: 0 auto 12px;
+}
+
+.game-over-trophy {
+  position: absolute;
+  right: -14px;
+  bottom: -10px;
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 60%));
+}
+
+/* A button with an icon before its label. */
+button.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+button.with-icon .sprite {
+  width: 18px;
+  height: 18px;
 }
 
 .game-over-actions {
