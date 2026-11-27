@@ -4,7 +4,7 @@ import { Forecast } from './ui/Forecast';
 import { GameCanvas } from './ui/GameCanvas';
 import { GameDialog } from './ui/GameDialog';
 import { useKeyboardControls } from './ui/hooks';
-import { InfoPanel } from './ui/InfoPanel';
+import { IntelPanel } from './ui/IntelPanel';
 import { Menus } from './ui/Menus';
 import { NewGameDialog } from './ui/NewGameDialog';
 import { GameOver, PowerBanner, TurnBanner } from './ui/Overlays';
@@ -24,7 +24,7 @@ export function App() {
         <TurnBanner />
         <PowerBanner />
       </main>
-      <InfoPanel />
+      <IntelPanel />
       <GameOver />
       {dialogOpen && (dialog === 'newGame' ? <NewGameDialog /> : <GameDialog />)}
     </div>

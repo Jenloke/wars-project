@@ -1,10 +1,11 @@
 import { canActivatePower, type GameState } from '@tactics/engine';
-import { useLayoutEffect, useRef, type CSSProperties } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { activatePower, endTurn, openGameDialog, zoomBy } from '../input/interaction';
 import { MAX_ZOOM, MIN_ZOOM } from '../render/camera';
 import { armiesOf } from '../session/armies';
 import { ruleset, session } from '../session/game';
 import { useUiStore, type Mode } from '../store/uiStore';
+import { armyStyle } from './armyStyle';
 import { useGameState } from './hooks';
 import { Portrait } from './Portrait';
 import { PowerGauge } from './PowerGauge';
@@ -19,11 +20,6 @@ const HINTS: Readonly<Record<Mode, string>> = {
   buildMenu: 'Choose a unit to build',
   mapMenu: '',
 };
-
-/** An army's accent colour, for its panel's CSS. */
-export function armyStyle(color: string): CSSProperties {
-  return { '--army': color } as CSSProperties;
-}
 
 /**
  * The side to move's power: its meter while charging, a button once it is full

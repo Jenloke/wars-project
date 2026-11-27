@@ -419,50 +419,205 @@ kbd {
   color: var(--danger);
 }
 
-.info-panel {
+/* Info panel: the unit and tile under the cursor, docked in a bottom corner. */
+.hud-intel {
   position: absolute;
-  right: var(--hud-gap);
   bottom: var(--hud-gap);
   z-index: 3;
   display: flex;
-  flex-direction: column;
+  align-items: flex-end;
   gap: 6px;
-  width: 220px;
 }
 
-.info-card {
-  background: var(--panel-raised);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
+.hud-intel.right {
+  right: var(--hud-gap);
 }
 
-.info-card h2 {
-  margin: 0 0 6px;
-  font-size: 15px;
+.hud-intel.left {
+  left: var(--hud-gap);
 }
 
-.info-card dl {
+.intel-card {
+  width: 184px;
+  padding: 8px 10px 9px;
+  border-top: 3px solid var(--army, var(--border));
+}
+
+.intel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.intel-thumb {
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 2px 12px;
-  margin: 0;
+  flex-shrink: 0;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  background: rgb(0 0 0 / 28%);
+  border-radius: 7px;
 }
 
-.info-card dt {
-  color: var(--muted);
+.intel-title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.info-card dd {
+.intel-title h2 {
   margin: 0;
-  text-align: right;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.intel-owner {
+  overflow: hidden;
+  color: var(--army, var(--muted));
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.intel-badges {
+  display: flex;
+  gap: 2px;
+  align-self: flex-start;
+}
+
+.intel-badges .sprite {
+  width: 16px;
+  height: 16px;
+}
+
+.intel-stats {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 5px 8px;
+  justify-content: start;
+  margin: 8px 0 0;
+}
+
+.intel-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.intel-stat dt {
+  display: flex;
+}
+
+.intel-stat .sprite {
+  width: 15px;
+  height: 15px;
+}
+
+.intel-stat dd {
+  margin: 0;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-.info-empty h2 {
-  margin: 0;
+.intel-stat .of {
   color: var(--muted);
-  font-weight: 400;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.intel-stat.low dd {
+  color: var(--danger);
+}
+
+.intel-stat .raised {
+  color: var(--good);
+}
+
+.intel-stat .lowered {
+  color: var(--danger);
+}
+
+.intel-notes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+}
+
+.intel-cargo {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.intel-cargo .sprite:first-child {
+  width: 15px;
+  height: 15px;
+  margin-right: 2px;
+}
+
+.intel-chip {
+  padding: 0 7px;
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.intel-stars {
+  display: flex;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.intel-stars .sprite {
+  width: 15px;
+  height: 15px;
+}
+
+.intel-capture {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.intel-capture .sprite {
+  width: 16px;
+  height: 16px;
+}
+
+.capture-track {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  background: rgb(0 0 0 / 40%);
+  border-radius: 999px;
+}
+
+.capture-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--army, var(--muted));
+  border-radius: inherit;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* Attack forecast: a bubble pointing at the target tile. */
@@ -524,7 +679,7 @@ kbd {
 
 .menu {
   position: absolute;
-  z-index: 2;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   gap: 4px;
