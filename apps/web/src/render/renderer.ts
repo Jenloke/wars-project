@@ -13,12 +13,14 @@ import {
 import { GRID, type Sprite, type SpriteLibrary } from '@tactics/sprites';
 import { armiesOf } from '../session/armies';
 import type { UiState } from '../store/uiStore';
+import type { Theme } from '../ui/theme';
 import { tileSize } from './camera';
 import type { Playback } from './playback';
 import { SpriteCache } from './spriteCache';
 import { compileTerrainLooks, drawTerrain, planTerrain, type TerrainPlan } from './terrainLayer';
 
-const BACKGROUND = '#1b2a3a';
+/** Drawn around the map, in each interface theme. */
+const BACKGROUNDS: Readonly<Record<Theme, string>> = { dark: '#1b2a3a', light: '#cdd6e1' };
 const IDLE_FRAME_MS = 500;
 const RANGE_ALPHA = 0.5;
 const TARGET_ALPHA = 0.6;
@@ -117,6 +119,7 @@ export function createRenderer(
   let planTerrainOf: readonly number[] | null = null;
   let planOwnerOf: readonly number[] | null = null;
   let layerKey = '';
+  let background = BACKGROUNDS.dark;
 
   // Per-frame drawing context, set at the top of `render`.
   let tile = GRID;
@@ -279,14 +282,14 @@ export function createRenderer(
       planOwnerOf = state.owner;
       layerKey = '';
     }
-    const key = `${tile} ${originX} ${originY} ${canvas.width} ${canvas.height}`;
+    const key = `${tile} ${originX} ${originY} ${canvas.width} ${canvas.height} ${background}`;
     if (key === layerKey) return;
     layerKey = key;
     if (layer.width !== canvas.width || layer.height !== canvas.height) {
       layer.width = canvas.width;
       layer.height = canvas.height;
     }
-    layerCtx!.fillStyle = BACKGROUND;
+    layerCtx!.fillStyle = background;
     layerCtx!.fillRect(0, 0, layer.width, layer.height);
     drawTerrain(layerCtx!, plan, cache, bounds, originX, originY);
   }
@@ -297,6 +300,7 @@ export function createRenderer(
     const state = playback.base ?? scene.state;
     const { camera, viewport } = ui;
     const { width, height } = state;
+    background = BACKGROUNDS[ui.theme];
 
     tile = tileSize(camera, viewport);
     if (tile !== cache.tileSize) {
@@ -318,7 +322,7 @@ export function createRenderer(
     const x1 = Math.min(width - 1, Math.floor((-originX + canvas.width - 1) / tile));
     const y1 = Math.min(height - 1, Math.floor((-originY + canvas.height - 1) / tile));
     if (x1 < x0 || y1 < y0) {
-      ctx.fillStyle = BACKGROUND;
+      ctx.fillStyle = background;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       return;
     }

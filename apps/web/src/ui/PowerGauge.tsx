@@ -1,6 +1,8 @@
 import type { GameState, PlayerIndex } from '@tactics/engine';
 import { armiesOf } from '../session/armies';
 import { ruleset } from '../session/game';
+import { armyStyle } from './armyStyle';
+import { Icon } from './SpriteSvg';
 
 interface PowerGaugeProps {
   readonly state: GameState;
@@ -18,7 +20,12 @@ export function PowerGauge({ state, player }: PowerGaugeProps) {
   const army = armiesOf(ruleset, state)[player]!;
   if (side.powerActive) {
     return (
-      <span className="power-active" style={{ borderColor: army.color, color: army.color }}>
+      <span
+        className="power-active army-ink"
+        style={armyStyle(army.color)}
+        title={`${power.name} is active`}
+      >
+        <Icon name="power" />
         {power.name}
       </span>
     );
@@ -28,18 +35,23 @@ export function PowerGauge({ state, player }: PowerGaugeProps) {
   return (
     <span
       className={full ? 'power-gauge full' : 'power-gauge'}
-      role="meter"
-      aria-label={`${power.name} charge`}
-      aria-valuemin={0}
-      aria-valuemax={power.cost}
-      aria-valuenow={charge}
-      aria-valuetext={full ? 'Ready' : `${Math.floor((charge * 100) / power.cost)}%`}
       title={`${power.name}: ${charge.toLocaleString()} / ${power.cost.toLocaleString()}`}
     >
+      <Icon name="power" />
       <span
-        className="power-fill"
-        style={{ width: `${(charge * 100) / power.cost}%`, background: army.color }}
-      />
+        className="power-track"
+        role="meter"
+        aria-label={`${power.name} charge`}
+        aria-valuemin={0}
+        aria-valuemax={power.cost}
+        aria-valuenow={charge}
+        aria-valuetext={full ? 'Ready' : `${Math.floor((charge * 100) / power.cost)}%`}
+      >
+        <span
+          className="power-fill"
+          style={{ width: `${(charge * 100) / power.cost}%`, background: army.color }}
+        />
+      </span>
     </span>
   );
 }

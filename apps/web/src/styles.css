@@ -1,16 +1,75 @@
+/*
+ * Theme tokens. Dark is the default; `data-theme="light"` on the root element
+ * (set by ui/theme.ts) switches every colour at once. Components use only
+ * these tokens, never literal colours, so both themes stay complete.
+ */
 :root {
-  --bg: #141c26;
-  --panel: #1d2836;
-  --panel-raised: #263445;
+  --bg: #121a24;
+  --panel: rgb(20 29 40 / 90%);
+  --panel-solid: #1a2431;
+  --panel-raised: #243244;
   --border: #34465c;
+  --border-soft: rgb(255 255 255 / 9%);
   --text: #e8edf3;
-  --muted: #8494a8;
+  --muted: #8a9bb0;
+  /* The accent as a fill (buttons), as text and borders on panels, and as a soft tint. */
   --accent: #ffd23f;
   --accent-text: #1d1f26;
+  --accent-ink: #ffd23f;
+  --accent-soft: rgb(255 210 63 / 14%);
   --danger: #ff5a4a;
-  --panel-width: 240px;
-  --bar-height: 52px;
+  --good: #8cc257;
+  --fuel: #e8a33a;
+  --ammo: #b4c3d8;
+  /* Overlays on panels: hover, quiet fills, gauge tracks and empty segments. */
+  --hover: rgb(255 255 255 / 9%);
+  --tint: rgb(255 255 255 / 6%);
+  --track: rgb(0 0 0 / 40%);
+  --track-edge: rgb(255 255 255 / 7%);
+  --seg-off: rgb(255 255 255 / 10%);
+  --thumb: rgb(0 0 0 / 28%);
+  --pill: rgb(12 18 26 / 72%);
+  --scrim: rgb(10 14 20 / 70%);
+  /* The edge drawn round interface icons, so every part of them shows on the panels. */
+  --icon-edge: #ffffff;
+  --icon-edge-opacity: 0.28;
+  --shadow: 0 6px 18px rgb(0 0 0 / 35%);
+  --shadow-strong: 0 16px 48px rgb(0 0 0 / 50%);
+  --radius: 10px;
+  --hud-gap: 8px;
   color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #e6ebf1;
+  --panel: rgb(255 255 255 / 92%);
+  --panel-solid: #ffffff;
+  --panel-raised: #eef2f7;
+  --border: #c3cdd9;
+  --border-soft: rgb(20 35 55 / 12%);
+  --text: #16202b;
+  --muted: #586678;
+  --accent: #ffc929;
+  --accent-text: #1d1f26;
+  --accent-ink: #94650a;
+  --accent-soft: rgb(255 190 0 / 20%);
+  --danger: #cf3426;
+  --good: #3b8526;
+  --fuel: #d0831a;
+  --ammo: #6d819c;
+  --hover: rgb(20 35 55 / 7%);
+  --tint: rgb(20 35 55 / 6%);
+  --track: rgb(20 35 55 / 14%);
+  --track-edge: rgb(20 35 55 / 8%);
+  --seg-off: rgb(20 35 55 / 12%);
+  --thumb: rgb(20 35 55 / 10%);
+  --pill: rgb(255 255 255 / 90%);
+  --scrim: rgb(25 35 50 / 45%);
+  --icon-edge: #16202b;
+  --icon-edge-opacity: 0.8;
+  --shadow: 0 6px 18px rgb(30 45 70 / 16%);
+  --shadow-strong: 0 16px 48px rgb(30 45 70 / 28%);
+  color-scheme: light;
 }
 
 * {
@@ -65,128 +124,64 @@ button.primary {
   font-weight: 600;
 }
 
+button.primary:hover:not(:disabled),
+button.primary:focus-visible {
+  border-color: var(--text);
+}
+
 .muted {
   color: var(--muted);
 }
 
-/* Layout: bar on top, map filling the rest, info panel docked right. */
-.app {
-  display: grid;
-  height: 100%;
-  grid-template:
-    'bar bar' var(--bar-height)
-    'board panel' minmax(0, 1fr)
-    / minmax(0, 1fr) var(--panel-width);
+/* Text in an army's colour (set as --army on it or an ancestor), legible on either theme. */
+.army-ink {
+  color: color-mix(in srgb, var(--army) 72%, var(--text));
 }
 
-.top-bar {
-  grid-area: bar;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 0 12px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
-}
-
-.turn-info {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  white-space: nowrap;
-}
-
-.day,
-.funds {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.faction {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.faction-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-}
-
-.army-name {
-  font-weight: 600;
-}
-
-/* Power meter: fills in the army's colour, and glows once the power is ready. */
-.power-gauge {
-  position: relative;
+/* Sprites and icons drawn as inline SVG; sized by their text unless a rule says otherwise. */
+.sprite {
   display: inline-block;
-  width: 84px;
-  height: 10px;
-  overflow: hidden;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  flex-shrink: 0;
+  overflow: visible;
+  vertical-align: -0.15em;
 }
 
-.power-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: inherit;
-  transition: width 0.3s ease-out;
+/*
+ * An icon's edge: its silhouette stroked a fixed width at any size, faded as one
+ * layer so overlapping polygons do not darken the rim.
+ */
+.sprite-edge {
+  opacity: var(--icon-edge-opacity);
+  fill: var(--icon-edge);
+  stroke: var(--icon-edge);
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
 }
 
-.power-gauge.full {
-  border-color: var(--accent);
-  box-shadow: 0 0 6px var(--accent);
+.sprite-edge polygon {
+  vector-effect: non-scaling-stroke;
 }
 
-.power-active {
-  padding: 1px 8px;
-  font-size: 12px;
-  font-weight: 700;
-  border: 1px solid;
-  border-radius: 999px;
-  animation: power-pulse 1.4s ease-in-out infinite alternate;
-}
-
-.power-button {
-  min-height: 30px;
-  padding: 2px 10px;
-  font-weight: 700;
-  border-width: 2px;
-}
-
-@keyframes power-pulse {
-  from {
-    opacity: 0.65;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.hint {
-  flex: 1;
-  margin: 0;
+kbd {
+  padding: 1px 5px;
+  font: 600 11px/1.3 system-ui;
   color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  background: var(--tint);
+  border: 1px solid var(--border);
+  border-radius: 4px;
 }
 
-.controls {
-  display: flex;
-  gap: 6px;
+/* Layout: the map fills the window and the HUD floats over it. */
+.app {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
 }
 
 .board {
-  grid-area: board;
-  position: relative;
+  position: absolute;
+  inset: 0;
   overflow: hidden;
-  min-width: 0;
-  min-height: 0;
 }
 
 .game-canvas {
@@ -198,6 +193,357 @@ button.primary {
   cursor: pointer;
 }
 
+.hud-panel {
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}
+
+/* Top HUD. Clicks between its panels reach the map. */
+.hud-top {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 4;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--hud-gap);
+  padding: var(--hud-gap);
+  pointer-events: none;
+}
+
+.hud-sides,
+.hud-tools {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+  pointer-events: auto;
+}
+
+.hud-tools {
+  flex-shrink: 0;
+  align-items: center;
+}
+
+/* Every side in one card, beside the day. */
+.sides-card {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+  padding: 4px;
+}
+
+.day-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  padding: 4px 6px;
+  background: var(--tint);
+  border-radius: 7px;
+}
+
+.day-badge .sprite {
+  width: 16px;
+  height: 16px;
+}
+
+.day-label {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.day-number {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sides {
+  border-spacing: 0 2px;
+  border-collapse: separate;
+  font-size: 13px;
+}
+
+.sides th,
+.sides td {
+  padding: 2px 8px;
+  font-weight: 400;
+  white-space: nowrap;
+  vertical-align: middle;
+  text-align: left;
+  border-block: 1px solid transparent;
+}
+
+.sides th {
+  border-left: 3px solid transparent;
+  border-radius: 7px 0 0 7px;
+}
+
+.sides td:last-child {
+  border-radius: 0 7px 7px 0;
+}
+
+.side > * {
+  opacity: 0.8;
+}
+
+/* The side to move: tinted in its colours and edged in its accent. */
+.side.active > * {
+  opacity: 1;
+  background: color-mix(in srgb, var(--army) 20%, transparent);
+  border-block-color: color-mix(in srgb, var(--army) 35%, transparent);
+}
+
+.side.active th {
+  border-left-color: var(--army);
+}
+
+.side.active td:last-child {
+  border-right: 1px solid color-mix(in srgb, var(--army) 35%, transparent);
+}
+
+.side.out > * {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.side-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.side-who .portrait {
+  border-radius: 6px;
+}
+
+.side-names {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.side-army {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: color-mix(in srgb, var(--army) 72%, var(--text));
+  font-weight: 700;
+}
+
+.side-army .sprite {
+  width: 14px;
+  height: 14px;
+}
+
+.side-commander {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.side-funds,
+.side-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.side-funds .sprite,
+.side-count .sprite {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  vertical-align: -0.25em;
+}
+
+.side-count {
+  font-weight: 700;
+}
+
+.side-income {
+  margin-left: 4px;
+  color: var(--good);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat .sprite {
+  width: 16px;
+  height: 16px;
+}
+
+/* Power meter: fills in the army's colour, and glows once the power is ready. */
+.power-gauge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.power-gauge .sprite {
+  width: 15px;
+  height: 15px;
+}
+
+.power-track {
+  position: relative;
+  display: block;
+  width: 76px;
+  height: 8px;
+  overflow: hidden;
+  background: var(--track);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--track-edge);
+}
+
+.power-gauge.full .power-track {
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 0 8px var(--accent);
+}
+
+.power-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  transition: width 0.3s ease-out;
+}
+
+.power-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid;
+  border-radius: 999px;
+  animation: power-pulse 1.4s ease-in-out infinite alternate;
+}
+
+.power-active .sprite {
+  width: 14px;
+  height: 14px;
+}
+
+.power-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0 10px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-color: var(--accent-ink);
+  border-radius: 999px;
+  animation: power-pulse 1.4s ease-in-out infinite alternate;
+}
+
+.power-button .sprite {
+  width: 15px;
+  height: 15px;
+}
+
+@keyframes power-pulse {
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.hud-hint {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+  margin: 0;
+  padding-top: 12px;
+}
+
+.hud-hint-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 4px 12px;
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: var(--pill);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+}
+
+.hud-hint-pill .sprite {
+  width: 16px;
+  height: 16px;
+}
+
+.tool-group {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+}
+
+.tool {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+  border-radius: 7px;
+}
+
+.tool:hover:not(:disabled) {
+  background: var(--hover);
+  border-color: transparent;
+}
+
+.tool:focus-visible {
+  border-color: var(--accent-ink);
+}
+
+.tool .sprite {
+  width: 20px;
+  height: 20px;
+}
+
+.end-turn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 0 14px 0 10px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.end-turn .sprite {
+  width: 18px;
+  height: 18px;
+}
+
 .load-error {
   position: absolute;
   inset: 0;
@@ -207,151 +553,502 @@ button.primary {
   color: var(--danger);
 }
 
-.info-panel {
-  grid-area: panel;
+/* Info panel: the unit and tile under the cursor, docked in a bottom corner. */
+.hud-intel {
+  position: absolute;
+  bottom: var(--hud-gap);
+  z-index: 3;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 10px;
-  background: var(--panel);
-  border-left: 1px solid var(--border);
-  overflow-y: auto;
+  align-items: flex-end;
+  gap: 6px;
 }
 
-.info-card {
-  background: var(--panel-raised);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 10px 12px;
+.hud-intel.right {
+  right: var(--hud-gap);
 }
 
-.info-card h2 {
-  margin: 0 0 6px;
-  font-size: 15px;
+.hud-intel.left {
+  left: var(--hud-gap);
 }
 
-.info-card dl {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 2px 12px;
-  margin: 0;
+.intel-card {
+  padding: 8px 10px 9px;
+  border-top: 3px solid var(--army, var(--border));
 }
 
-.info-card dt {
-  color: var(--muted);
-}
-
-.info-card dd {
-  margin: 0;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.info-empty h2 {
-  margin: 0;
-  color: var(--muted);
-  font-weight: 400;
-}
-
-.damage-preview {
-  border-color: var(--danger);
-}
-
-.armies-card ul {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.army {
+.intel-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  opacity: 0.75;
 }
 
-.army.active {
-  opacity: 1;
+.intel-thumb {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  background: var(--thumb);
+  border-radius: 7px;
 }
 
-.army-text {
+.intel-title {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: 3px;
   min-width: 0;
 }
 
-.army-text .army-name {
+.intel-title h2 {
+  margin: 0;
   overflow: hidden;
+  font-size: 14px;
+  line-height: 1.25;
+  white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.intel-owner {
+  overflow: hidden;
+  color: color-mix(in srgb, var(--army, var(--muted)) 72%, var(--text));
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.intel-badges {
+  display: flex;
+  gap: 2px;
+  align-self: flex-start;
+}
+
+.intel-badges .sprite {
+  width: 16px;
+  height: 16px;
+}
+
+.unit-card {
+  width: 214px;
+}
+
+.tile-card {
+  width: 196px;
+}
+
+/* Stats as gauges: icon, gauge filled to the level, value. */
+.gauges {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.gauge-row {
+  --fill: var(--good);
+  display: grid;
+  grid-template-columns: 17px 1fr 46px;
+  align-items: center;
+  gap: 7px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gauge-row > .sprite {
+  width: 17px;
+  height: 17px;
+}
+
+.gauge-row.hp.mid {
+  --fill: var(--accent);
+}
+
+.gauge-row.fuel {
+  --fill: var(--fuel);
+}
+
+.gauge-row.ammo {
+  --fill: var(--ammo);
+}
+
+.gauge-row.capture {
+  --fill: var(--army, var(--muted));
+}
+
+.gauge-row.low:not(.capture) {
+  --fill: var(--danger);
+}
+
+.gauge {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  height: 9px;
+  overflow: hidden;
+  background: var(--track);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px var(--track-edge);
+}
+
+.gauge.segmented {
+  background: none;
+  box-shadow: none;
+}
+
+.seg {
+  flex: 1;
+  background: var(--seg-off);
+  border-radius: 2px;
+}
+
+.seg.on {
+  background: var(--fill);
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 22%);
+}
+
+.gauge-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--fill);
+  border-radius: inherit;
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 22%);
+}
+
+/* What the next turn will use up, shown as a faded stripe at the top of the level. */
+.gauge-spend,
+.seg.on.spend {
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--fill) 55%, transparent) 0 3px,
+    var(--track) 3px 5px
+  );
+}
+
+.gauge-spend {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.gauge-value {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.gauge-row.low:not(.capture) .gauge-value {
+  color: var(--danger);
+}
+
+.gauge-value .of {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.stars .sprite {
+  width: 15px;
+  height: 15px;
+}
+
+.no-cover {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.intel-notes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.intel-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px 1px 5px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: var(--tint);
+  border-radius: 999px;
+}
+
+.intel-chip .sprite {
+  width: 16px;
+  height: 16px;
+}
+
+.intel-chip .of {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.intel-chip .raised {
+  color: var(--good);
+}
+
+.intel-chip .lowered {
+  color: var(--danger);
+}
+
+.intel-cargo .sprite:not(:first-child) {
+  width: 20px;
+  height: 20px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
   white-space: nowrap;
 }
 
-.menu {
+/* Attack forecast: a bubble pointing at the target tile. */
+.forecast {
   position: absolute;
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 170px;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 10px;
+  font-size: 13px;
+  background: var(--panel-solid);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  pointer-events: none;
+}
+
+.forecast::after {
+  position: absolute;
+  top: 100%;
+  left: calc(var(--arrow) - 6px);
+  content: '';
+  border: 6px solid transparent;
+  border-top-color: var(--danger);
+}
+
+.forecast.below::after {
+  top: auto;
+  bottom: 100%;
+  border-top-color: transparent;
+  border-bottom-color: var(--danger);
+}
+
+.forecast-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.forecast-row .sprite {
+  width: 16px;
+  height: 16px;
+}
+
+.forecast-row strong {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.forecast-row.lethal strong {
+  color: var(--accent-ink);
+}
+
+.forecast-counter {
+  color: var(--danger);
+}
+
+.menu {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 168px;
   max-height: calc(100% - 16px);
   overflow-y: auto;
-  padding: 8px;
-  background: var(--panel);
+  padding: 4px 4px 5px;
+  background: var(--panel-solid);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 45%);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-strong);
+}
+
+.menu-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 3px 8px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .menu-title {
-  padding: 0 4px 2px;
+  flex: 1;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
+}
+
+.menu-funds {
+  font-size: 13px;
+}
+
+.menu-close {
+  display: grid;
+  place-items: center;
+  min-width: 26px;
+  min-height: 26px;
+  padding: 0;
+  background: transparent;
+  border-color: transparent;
+}
+
+.menu-close .sprite {
+  width: 12px;
+  height: 12px;
+}
+
+.menu-close:hover:not(:disabled) {
+  background: var(--hover);
+  border-color: transparent;
 }
 
 .menu-item {
   display: flex;
-  justify-content: space-between;
-  gap: 16px;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 3px 10px 3px 6px;
   text-align: left;
+  background: transparent;
+  border-color: transparent;
+  border-radius: 7px;
+}
+
+.menu-item:hover:not(:disabled) {
+  background: var(--hover);
+  border-color: transparent;
 }
 
 .menu-item:focus-visible {
-  background: var(--border);
+  background: var(--accent-soft);
+  border-color: var(--accent-ink);
+}
+
+.menu-icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+}
+
+.menu-icon .sprite {
+  width: 20px;
+  height: 20px;
+}
+
+/* Units to build are shown by their art, so draw it larger. */
+.build-menu .menu-icon,
+.build-menu .menu-icon .sprite {
+  width: 30px;
+  height: 30px;
+}
+
+.build-menu .menu-item {
+  min-height: 36px;
+  padding-block: 1px;
+}
+
+.menu-label {
+  flex: 1;
 }
 
 .menu-detail {
-  color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-}
-
-.menu-cancel {
-  color: var(--muted);
 }
 
 .turn-banner {
   position: absolute;
-  top: 16px;
   left: 50%;
   z-index: 1;
-  padding: 8px 20px;
-  background: var(--panel);
-  border: 2px solid var(--border);
-  border-radius: 999px;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 18px 5px 5px;
   white-space: nowrap;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--army) 28%, transparent), transparent 80%),
+    var(--panel-solid);
+  border: 2px solid var(--army);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
   pointer-events: none;
   transform: translateX(-50%);
   animation: banner 1.6s ease-out forwards;
 }
 
+.turn-banner .portrait {
+  border-radius: 999px;
+}
+
+.turn-banner-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.turn-banner-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+}
+
+.turn-banner-title strong {
+  color: color-mix(in srgb, var(--army) 72%, var(--text));
+}
+
+.turn-banner-day {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+}
+
+.turn-banner .sprite {
+  width: 18px;
+  height: 18px;
+}
+
 .banner-loss {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.banner-loss .sprite {
+  width: 14px;
+  height: 14px;
 }
 
 .power-banner {
@@ -366,13 +1063,16 @@ button.primary {
   background: var(--panel);
   border: 3px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 10px 30px rgb(0 0 0 / 50%);
+  box-shadow: var(--shadow-strong);
   pointer-events: none;
   transform: translate(-50%, -50%);
   animation: power-banner 2s ease-out forwards;
 }
 
 .power-banner-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 26px;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -416,14 +1116,16 @@ button.primary {
   z-index: 10;
   display: grid;
   place-items: center;
-  background: rgb(10 14 20 / 70%);
+  background: var(--scrim);
 }
 
 .game-over-card {
   padding: 28px 36px;
-  background: var(--panel);
+  background: var(--panel-solid);
   border: 1px solid var(--border);
+  border-top: 4px solid var(--army);
   border-radius: 14px;
+  box-shadow: var(--shadow-strong);
   text-align: center;
 }
 
@@ -431,8 +1133,31 @@ button.primary {
   margin: 0 0 8px;
 }
 
-.game-over-card .portrait {
+.game-over-portrait {
+  position: relative;
+  width: 96px;
   margin: 0 auto 12px;
+}
+
+.game-over-trophy {
+  position: absolute;
+  right: -14px;
+  bottom: -10px;
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 60%));
+}
+
+/* A button with an icon before its label. */
+button.with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+button.with-icon .sprite {
+  width: 18px;
+  height: 18px;
 }
 
 .game-over-actions {
@@ -447,14 +1172,14 @@ button.primary {
   max-height: calc(100dvh - 32px);
   padding: 0;
   color: var(--text);
-  background: var(--panel);
+  background: var(--panel-solid);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 16px 48px rgb(0 0 0 / 50%);
+  box-shadow: var(--shadow-strong);
 }
 
 .game-dialog::backdrop {
-  background: rgb(10 14 20 / 70%);
+  background: var(--scrim);
 }
 
 .dialog-header {
@@ -470,10 +1195,34 @@ button.primary {
 }
 
 .icon-button {
+  display: inline-grid;
+  place-items: center;
   min-width: 36px;
   padding: 0;
-  font-size: 20px;
-  line-height: 1;
+}
+
+.icon-button .sprite {
+  width: 18px;
+  height: 18px;
+}
+
+.dialog-header .icon-button {
+  background: transparent;
+  border-color: transparent;
+}
+
+.dialog-header .icon-button .sprite {
+  width: 13px;
+  height: 13px;
+}
+
+.dialog-header .icon-button:hover {
+  background: var(--hover);
+}
+
+.icon-button.danger:hover:not(:disabled),
+.icon-button.danger:focus-visible {
+  border-color: var(--danger);
 }
 
 .dialog-notice {
@@ -623,9 +1372,15 @@ button.primary {
 .segment span {
   display: flex;
   align-items: center;
+  gap: 6px;
   min-height: 34px;
   padding: 0 14px;
   cursor: pointer;
+}
+
+.segment .sprite {
+  width: 16px;
+  height: 16px;
 }
 
 .segment + .segment span {
@@ -833,33 +1588,44 @@ button.primary {
   }
 }
 
-/* Tablet and narrower: the info panel moves below the map, cards side by side. */
+/* Narrow screens: drop the hint, income, commanders' names and the end turn label. */
 @media (max-width: 900px) {
-  .app {
-    grid-template:
-      'bar' var(--bar-height)
-      'board' minmax(0, 1fr)
-      'panel' auto
-      / minmax(0, 1fr);
+  .hud-hint {
+    visibility: hidden;
   }
 
-  .info-panel {
-    flex-direction: row;
-    border-left: 0;
-    border-top: 1px solid var(--border);
-    overflow-x: auto;
+  .side-income {
+    display: none;
   }
+}
 
-  .info-card {
-    flex: 1 0 150px;
-  }
-
-  .hint {
+@media (max-width: 640px) {
+  .side-commander,
+  .end-turn-label {
     display: none;
   }
 
-  .turn-info {
-    flex: 1;
+  /* Sides are told apart by portrait and colour; their names stay for screen readers. */
+  .side-names {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .sides th,
+  .sides td {
+    padding-inline: 5px;
+  }
+
+  .power-track {
+    width: 44px;
+  }
+
+  .end-turn {
+    padding: 0 12px;
   }
 }
 

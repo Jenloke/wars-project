@@ -11,11 +11,27 @@ export interface Camera {
   readonly zoom: number;
 }
 
+/** Space at each edge of the view, in device pixels, covered by interface panels. */
+export interface Insets {
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+}
+
+export const NO_INSETS: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
+
 /** Canvas backing-store size in device pixels and the device pixel ratio. */
 export interface Viewport {
   readonly width: number;
   readonly height: number;
   readonly dpr: number;
+  /**
+   * Edges covered by the HUD. A map that fits is centred in the rest of the
+   * view, a larger one can scroll its edges clear of the HUD, and the cursor is
+   * never scrolled under it.
+   */
+  readonly insets?: Insets | undefined;
 }
 
 /**
@@ -27,10 +43,21 @@ export function tileSize(camera: Camera, viewport: Viewport): number {
   return Math.max(1, Math.round(GRID * camera.zoom * viewport.dpr));
 }
 
-function clampAxis(offset: number, world: number, view: number): number {
-  // A map smaller than the view is centred; otherwise it cannot scroll past its edges.
-  if (world <= view) return -Math.floor((view - world) / 2);
-  return Math.max(0, Math.min(world - view, Math.round(offset)));
+/**
+ * Camera offset on one axis. `before` and `after` are the view's covered edges:
+ * a map that fits between them is centred there; a larger one cannot scroll
+ * further than to bring its edges just clear of them.
+ */
+function clampAxis(
+  offset: number,
+  world: number,
+  view: number,
+  before: number,
+  after: number,
+): number {
+  const open = view - before - after;
+  if (world <= open) return 0 - before - Math.floor((open - world) / 2);
+  return Math.max(0 - before, Math.min(world - view + after, Math.round(offset)));
 }
 
 export function clampCamera(
@@ -41,10 +68,11 @@ export function clampCamera(
 ): Camera {
   const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.round(camera.zoom)));
   const tile = tileSize({ ...camera, zoom }, viewport);
+  const insets = viewport.insets ?? NO_INSETS;
   return {
     zoom,
-    x: clampAxis(camera.x, mapWidth * tile, viewport.width),
-    y: clampAxis(camera.y, mapHeight * tile, viewport.height),
+    x: clampAxis(camera.x, mapWidth * tile, viewport.width, insets.left, insets.right),
+    y: clampAxis(camera.y, mapHeight * tile, viewport.height, insets.top, insets.bottom),
   };
 }
 
@@ -59,7 +87,7 @@ export function zoomAt(camera: Camera, zoom: number, anchorX: number, anchorY: n
   };
 }
 
-/** Scrolls the least distance needed to bring a tile fully into view. */
+/** Scrolls the least distance needed to bring a tile fully into the uncovered view. */
 export function panToTile(
   camera: Camera,
   viewport: Viewport,
@@ -67,13 +95,18 @@ export function panToTile(
   mapWidth: number,
 ): Camera {
   const size = tileSize(camera, viewport);
+  const insets = viewport.insets ?? NO_INSETS;
   const left = (tile % mapWidth) * size;
   const top = Math.floor(tile / mapWidth) * size;
   let { x, y } = camera;
-  if (left < x) x = left;
-  else if (left + size > x + viewport.width) x = left + size - viewport.width;
-  if (top < y) y = top;
-  else if (top + size > y + viewport.height) y = top + size - viewport.height;
+  if (left < x + insets.left) x = left - insets.left;
+  else if (left + size > x + viewport.width - insets.right) {
+    x = left + size - viewport.width + insets.right;
+  }
+  if (top < y + insets.top) y = top - insets.top;
+  else if (top + size > y + viewport.height - insets.bottom) {
+    y = top + size - viewport.height + insets.bottom;
+  }
   return { ...camera, x, y };
 }
 

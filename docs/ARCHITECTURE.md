@@ -723,6 +723,19 @@ Sprites are vector art all the way to the screen: there is no build step and no 
    hair tones in the palette.
 9. **Team colours**: the renderer's sprite cache takes one ramp per seat from the game's
    armies (section 9), so units and buildings are drawn in their commander's colours.
+10. **Interface art**: the HUD, menus and dialogs draw sprites in the page with
+    `SpriteSvg` (`apps/web/src/ui`), which writes a sprite's polygons as inline SVG: the
+    same art as the map, sharp at any size, with team placeholders in a given army's
+    colours, or in the text colour with `mono` (each polygon shaded by its lightness) for
+    icons on coloured buttons. Interface icons are sprites too, `icon.<name>` under
+    `svg/icon`, listed in `ui/icons.ts`; the capture flag uses team placeholders so it
+    shows its owner. Units and terrain are shown by the same visual data the renderer
+    uses (`ui/spriteArt.ts`), autotiled terrain by its east-west piece, so new content
+    appears in menus and info cards as soon as it has art. Icons keep their own colours
+    in both themes, since the colours carry their meaning; instead each is drawn over its
+    silhouette stroked in the theme's `--icon-edge` colour (dark on light panels, a faint
+    light rim on dark ones), so an icon that is mostly white or mostly grey still shows.
+    Icons drawn `mono`, and unit and terrain art, have no edge.
 
 ## 9. Renderer and UI
 
@@ -739,7 +752,9 @@ Sprites are vector art all the way to the screen: there is no build step and no 
 - **Camera**: pan + integer zoom (1x-4x), all coordinates rounded. A tile is
   `round(48 * zoom * devicePixelRatio)` device pixels, so it is 48 CSS pixels per zoom
   step even at 125% or 150% display scaling, and sprites are rasterised at exactly that
-  size.
+  size. The viewport carries `insets`, the edges the HUD covers: a map that fits is
+  centred in the rest of the view, a larger one can scroll its edges out from under the
+  HUD, and the cursor is never scrolled beneath it.
 - **Tweens**: slide-along-path, attack bump, capture hop, destroy puff (also for units lost
   to fuel). They are driven by engine `events`, live in transient animation state, and
   block input until done. The turn banner names any units that crashed or sank as the
@@ -750,6 +765,12 @@ targeting | unloading | buildMenu | mapMenu`), selected unit, cached reachable s
   state lives in
   `GameSession`, not in the store; React subscribes to it through
   `useSyncExternalStore`.
+- **Themes** (`ui/theme.ts`): a light and a dark theme. The toolbar switch steps
+  through following the system, light and dark; the choice is kept in local storage
+  and applied as `data-theme` on the root element before the first render. Every
+  colour in `styles.css` is a token defined for both themes, with the accent split into
+  its fill and its use as text, and army names as text blend the army's colour toward
+  the text colour. The renderer draws the map's surroundings in the theme's colour.
 - **Input**: mouse (click select/confirm, right-click cancel, drag pan, wheel zoom) and
   keyboard (arrows/WASD cursor, Enter/Space confirm, Esc cancel, E map menu, P power).
   During a computer turn the cursor still moves for inspection, but no orders are
@@ -767,15 +788,33 @@ targeting | unloading | buildMenu | mapMenu`), selected unit, cached reachable s
   at a time; the default Field Officer may lead several. It starts from the current
   game's choices when they fit, else you against the computer with a different
   commander per side.
-- **Powers**: the top bar shows the side to move by portrait and army, with its power
-  meter filling in the army's colour; once full, a button named after the power (also P
-  and the first item of the map menu) activates it on a human turn. While it is active
-  the meter shows the power's name. A banner with the commander's portrait announces
-  every activation, the computer's included. The info panel lists every side's commander
-  and meter, and the unit card shows Move and Range as the unit's commander changes them,
-  with the unit's own value beside them when they differ.
-- **Layout**: canvas fills the viewport; panels dock to the side on desktop and to the
-  bottom below about 900px width.
+- **Powers**: each side's row in the commanders card has its power meter filling in the
+  army's colour; once the side to move's meter is full, it becomes a button named after
+  the power (also P and the first item of the map menu) that activates it on a human
+  turn. While it is active the meter shows the power's name. A banner with the
+  commander's portrait announces every activation, the computer's included. The unit
+  card shows Move and Range as the unit's commander changes them, green when raised and
+  red when lowered, with the unit's own value beside them.
+- **Layout**: the canvas fills the window and the HUD floats over it; clicks between its
+  panels reach the map. Positions come from pure functions in `ui/hudLayout.ts`.
+  - _Command bar_ (top): the commanders card, a hint for the current step, and icon
+    buttons for zoom, save and load, and end turn. Its height is the board's top inset.
+    The commanders card has the day and a row per side, the side to move highlighted:
+    portrait, army and commander, funds and income, properties and units (`ui/sides.ts`),
+    and the power meter. A defeated side stays listed, struck through.
+  - _Info panel_ (a bottom corner): the unit under the cursor (or the unit being moved, at
+    the end of its path) and the tile. HP is a ten-segment gauge, fuel a level bar with
+    the next day's use hatched, and ammo one pip per round, each red when low. Defence is
+    a shield row of star icons with what they are worth: on the tile card, the cut in
+    damage to a unit at full HP; on the unit card, the cover it gets on that tile at its
+    current HP (`ui/intel.ts`, one percent per star per HP pip, as in the damage formula).
+    Properties add the owner and a capture gauge. The panel moves to the other corner
+    when the cursor goes under it.
+  - _Menus_ open beside their tile with an icon per order, unit art in the build menu,
+    and a close button in the header. The _attack forecast_ is a bubble pointing at the
+    target.
+  - Below 900 px the hint and income are hidden; below 640 px the side names (kept for
+    screen readers) and the end turn label are too.
 
 ## 10. Testing
 
@@ -806,7 +845,8 @@ needs no engine, renderer or AI change.
 4. Draw it: `packages/sprites/src/svg/unit/<id>.f0.svg` and `.f1.svg` (polygons, palette
    colours, team placeholders for team colours; see section 8). Until the files exist it
    plays as a team-coloured placeholder crate. An entry in `unitVisuals` can point it at
-   another sprite or change how high it flies.
+   another sprite or change how high it flies. The build menu and info panel show the
+   same art.
 
 The content tests then check its damage rows, that its buildings can hold it, and (in
 `apps/web/test`) that its art exists.

@@ -53,18 +53,31 @@ export function GameCanvas() {
       const dpr = window.devicePixelRatio || 1;
       const width = Math.max(1, Math.round(canvas.clientWidth * dpr));
       const height = Math.max(1, Math.round(canvas.clientHeight * dpr));
-      canvas.width = width;
-      canvas.height = height;
-      const viewport = { width, height, dpr };
+      if (canvas.width !== width) canvas.width = width;
+      if (canvas.height !== height) canvas.height = height;
+      const { hudInsets, camera } = useUiStore.getState();
+      const insets = {
+        top: Math.round(hudInsets.top * dpr),
+        right: Math.round(hudInsets.right * dpr),
+        bottom: Math.round(hudInsets.bottom * dpr),
+        left: Math.round(hudInsets.left * dpr),
+      };
+      const viewport = { width, height, dpr, insets };
       const state = session.getState();
-      const camera = clampCamera(useUiStore.getState().camera, viewport, state.width, state.height);
-      useUiStore.setState({ viewport, camera });
+      useUiStore.setState({
+        viewport,
+        camera: clampCamera(camera, viewport, state.width, state.height),
+      });
     };
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
     resize();
 
-    const unsubscribeUi = useUiStore.subscribe(markDirty);
+    const unsubscribeUi = useUiStore.subscribe((ui, previous) => {
+      // The HUD changed size: the open part of the view moved.
+      if (ui.hudInsets !== previous.hudInsets) resize();
+      markDirty();
+    });
     const unsubscribeState = session.subscribe(() => {
       // Any applied action or new game invalidates the current selection.
       const state = session.getState();

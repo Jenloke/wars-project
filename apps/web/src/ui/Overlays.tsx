@@ -3,9 +3,15 @@ import { useEffect, useState } from 'react';
 import { openGameDialog, openNewGameDialog } from '../input/interaction';
 import { armiesOf } from '../session/armies';
 import { ruleset, session } from '../session/game';
+import { useUiStore } from '../store/uiStore';
+import { armyStyle } from './armyStyle';
 import { unitsLostToFuel } from './fuelLosses';
 import { useGameState } from './hooks';
 import { Portrait } from './Portrait';
+import { Icon } from './SpriteSvg';
+
+/** Space between the top HUD and the turn banner, in CSS pixels. */
+const BANNER_GAP = 10;
 
 const REASONS: Readonly<Record<WinReason, string>> = {
   hq: 'The enemy headquarters was captured.',
@@ -19,6 +25,7 @@ const REASONS: Readonly<Record<WinReason, string>> = {
  */
 export function TurnBanner() {
   const state = useGameState();
+  const top = useUiStore((ui) => ui.hudInsets.top) + BANNER_GAP;
   const [lost, setLost] = useState<readonly string[]>([]);
   useEffect(() => {
     // Events arrive before the new state is published, so the banner that
@@ -40,14 +47,28 @@ export function TurnBanner() {
     <div
       key={`${state.day}-${state.activePlayer}`}
       className="turn-banner"
-      style={{ borderColor: army.color }}
+      style={{ ...armyStyle(army.color), top }}
       role="status"
     >
-      Day {state.day} · {army.name}
-      {state.players[state.activePlayer]!.controller === 'ai' && (
-        <span className="muted"> · Computer</span>
-      )}
-      {lost.length > 0 && <span className="banner-loss"> · Out of fuel: {lost.join(', ')}</span>}
+      <Portrait sprite={army.portrait} ramp={army.ramp} size={36} />
+      <span className="turn-banner-text">
+        <span className="turn-banner-title">
+          <span className="turn-banner-day">
+            <Icon name="day" />
+            Day {state.day}
+          </span>
+          <strong>{army.name}</strong>
+          {state.players[state.activePlayer]!.controller === 'ai' && (
+            <Icon name="computer" label="Computer" />
+          )}
+        </span>
+        {lost.length > 0 && (
+          <span className="banner-loss">
+            <Icon name="fuel" />
+            Out of fuel: {lost.join(', ')}
+          </span>
+        )}
+      </span>
     </div>
   );
 }
@@ -83,13 +104,14 @@ export function PowerBanner() {
     <div
       key={shown.serial}
       className="power-banner"
-      style={{ borderColor: army.color }}
+      style={{ ...armyStyle(army.color), borderColor: army.color }}
       role="status"
       onAnimationEnd={() => setShown(null)}
     >
       <Portrait sprite={army.portrait} ramp={army.ramp} size={72} />
       <div>
-        <div className="power-banner-name" style={{ color: army.color }}>
+        <div className="power-banner-name army-ink">
+          <Icon name="power" />
           {power.name}
         </div>
         <div className="muted">
@@ -106,9 +128,12 @@ export function GameOver() {
   const army = armiesOf(ruleset, state)[state.status.winner]!;
   return (
     <div className="game-over" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
-      <div className="game-over-card">
-        <Portrait sprite={army.portrait} ramp={army.ramp} size={96} label={army.commanderName} />
-        <h1 id="game-over-title" style={{ color: army.color }}>
+      <div className="game-over-card" style={armyStyle(army.color)}>
+        <div className="game-over-portrait">
+          <Portrait sprite={army.portrait} ramp={army.ramp} size={96} label={army.commanderName} />
+          <Icon name="trophy" className="game-over-trophy" />
+        </div>
+        <h1 id="game-over-title" className="army-ink">
           {army.name} wins
         </h1>
         <p>{REASONS[state.status.reason]}</p>
@@ -116,10 +141,12 @@ export function GameOver() {
           {army.commanderName} · Day {state.day}
         </p>
         <div className="game-over-actions">
-          <button type="button" onClick={openGameDialog}>
+          <button type="button" className="with-icon" onClick={openGameDialog}>
+            <Icon name="open" />
             Load a save
           </button>
-          <button type="button" className="primary" autoFocus onClick={openNewGameDialog}>
+          <button type="button" className="primary with-icon" autoFocus onClick={openNewGameDialog}>
+            <Icon name="newGame" mono />
             New game…
           </button>
         </div>
