@@ -34,6 +34,7 @@ export const ICON_NAMES = [
   'supply',
   'surface',
   'trophy',
+  'units',
   'wait',
   'zoomIn',
   'zoomOut',

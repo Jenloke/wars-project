@@ -149,65 +149,152 @@ kbd {
   align-items: center;
 }
 
-.army-card {
+/* Every side in one card, beside the day. */
+.sides-card {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  align-items: stretch;
+  gap: 4px;
   min-width: 0;
-  padding: 6px 12px 6px 6px;
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--army) 24%, transparent), transparent 70%),
-    var(--panel);
-  border-left: 3px solid var(--army);
+  padding: 4px;
 }
 
-.army-card .portrait {
+.day-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  padding: 4px 6px;
+  background: rgb(255 255 255 / 6%);
   border-radius: 7px;
 }
 
-.army-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-
-.army-card-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  white-space: nowrap;
-}
-
-.army-card-name {
-  color: var(--army);
-  font-size: 15px;
-  line-height: 1.2;
-}
-
-.army-card-cpu {
+.day-badge .sprite {
   width: 16px;
   height: 16px;
 }
 
-.army-card-commander {
-  overflow: hidden;
-  text-overflow: ellipsis;
+.day-label {
+  margin-top: 2px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.day-chip {
+.day-number {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sides {
+  border-spacing: 0 2px;
+  border-collapse: separate;
+  font-size: 13px;
+}
+
+.sides th,
+.sides td {
+  padding: 2px 8px;
+  font-weight: 400;
+  white-space: nowrap;
+  vertical-align: middle;
+  text-align: left;
+  border-block: 1px solid transparent;
+}
+
+.sides th {
+  border-left: 3px solid transparent;
+  border-radius: 7px 0 0 7px;
+}
+
+.sides td:last-child {
+  border-radius: 0 7px 7px 0;
+}
+
+.side > * {
+  opacity: 0.8;
+}
+
+/* The side to move: tinted in its colours and edged in its accent. */
+.side.active > * {
+  opacity: 1;
+  background: color-mix(in srgb, var(--army) 20%, transparent);
+  border-block-color: color-mix(in srgb, var(--army) 35%, transparent);
+}
+
+.side.active th {
+  border-left-color: var(--army);
+}
+
+.side.active td:last-child {
+  border-right: 1px solid color-mix(in srgb, var(--army) 35%, transparent);
+}
+
+.side.out > * {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.side-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.side-who .portrait {
+  border-radius: 6px;
+}
+
+.side-names {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.side-army {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  margin-left: auto;
-  padding: 1px 8px 1px 5px;
-  font-size: 12px;
+  color: var(--army);
+  font-weight: 700;
+}
+
+.side-army .sprite {
+  width: 14px;
+  height: 14px;
+}
+
+.side-commander {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.side-funds,
+.side-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.side-funds .sprite,
+.side-count .sprite {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  vertical-align: -0.25em;
+}
+
+.side-count {
+  font-weight: 700;
+}
+
+.side-income {
+  margin-left: 4px;
+  color: var(--good);
+  font-size: 11px;
   font-weight: 600;
-  background: rgb(255 255 255 / 7%);
-  border-radius: 999px;
 }
 
 .stat {
@@ -246,11 +333,6 @@ kbd {
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%);
 }
 
-.power-gauge.compact .power-track {
-  width: 28px;
-  height: 4px;
-}
-
 .power-gauge.full .power-track {
   box-shadow:
     0 0 0 1px var(--accent),
@@ -281,10 +363,6 @@ kbd {
   height: 14px;
 }
 
-.power-active.compact {
-  padding: 1px 6px;
-}
-
 .power-button {
   display: inline-flex;
   align-items: center;
@@ -312,28 +390,6 @@ kbd {
   to {
     opacity: 1;
   }
-}
-
-.rivals {
-  display: flex;
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.rival {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  padding: 5px 6px 6px;
-  border-bottom: 2px solid var(--army);
-}
-
-.rival .portrait {
-  border-radius: 5px;
 }
 
 .hud-hint {
@@ -1395,17 +1451,40 @@ button.with-icon .sprite {
   }
 }
 
-/* Narrow screens: drop the hint, the commander's name and the end turn label. */
+/* Narrow screens: drop the hint, income, commanders' names and the end turn label. */
 @media (max-width: 900px) {
   .hud-hint {
     visibility: hidden;
   }
+
+  .side-income {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {
-  .army-card-commander,
+  .side-commander,
   .end-turn-label {
     display: none;
+  }
+
+  /* Sides are told apart by portrait and colour; their names stay for screen readers. */
+  .side-names {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .sides th,
+  .sides td {
+    padding-inline: 5px;
+  }
+
+  .power-track {
+    width: 44px;
   }
 
   .end-turn {

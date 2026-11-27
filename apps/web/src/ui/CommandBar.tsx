@@ -2,13 +2,14 @@ import { canActivatePower, type GameState } from '@tactics/engine';
 import { useLayoutEffect, useRef } from 'react';
 import { activatePower, endTurn, openGameDialog, zoomBy } from '../input/interaction';
 import { MAX_ZOOM, MIN_ZOOM } from '../render/camera';
-import { armiesOf } from '../session/armies';
+import { armiesOf, type Army } from '../session/armies';
 import { ruleset, session } from '../session/game';
 import { useUiStore, type Mode } from '../store/uiStore';
 import { armyStyle } from './armyStyle';
 import { useGameState } from './hooks';
 import { Portrait } from './Portrait';
 import { PowerGauge } from './PowerGauge';
+import { sideStats } from './sides';
 import { Icon } from './SpriteSvg';
 
 const HINTS: Readonly<Record<Mode, string>> = {
@@ -21,10 +22,7 @@ const HINTS: Readonly<Record<Mode, string>> = {
   mapMenu: '',
 };
 
-/**
- * The side to move's power: its meter while charging, a button once it is full
- * on a turn played here, or its name while it is in effect.
- */
+/** The side to move's power: a button once it is full on a turn played here, else its meter. */
 function PowerStatus({ state, canOrder }: { state: GameState; canOrder: boolean }) {
   const mode = useUiStore((ui) => ui.mode);
   const side = state.players[state.activePlayer]!;
@@ -47,66 +45,92 @@ function PowerStatus({ state, canOrder }: { state: GameState; canOrder: boolean 
   return <PowerGauge state={state} player={state.activePlayer} />;
 }
 
-/** The side to move: commander, army, day, funds and power. */
-function ArmyCard({ state, canOrder }: { state: GameState; canOrder: boolean }) {
-  const player = state.players[state.activePlayer]!;
-  const army = armiesOf(ruleset, state)[state.activePlayer]!;
+interface SideRowProps {
+  readonly state: GameState;
+  readonly army: Army;
+  readonly canOrder: boolean;
+}
+
+/** One side: who leads it, its funds and income, properties, units and power. */
+function SideRow({ state, army, canOrder }: SideRowProps) {
+  const side = state.players[army.seat]!;
+  const active = army.seat === state.activePlayer;
+  const stats = sideStats(ruleset, state, army.seat);
+  const classes = ['side', active && 'active', !side.alive && 'out'].filter(Boolean).join(' ');
   return (
-    <section
-      className="hud-panel army-card"
+    <tr
+      className={classes}
       style={armyStyle(army.color)}
-      aria-label={`${army.name} to move`}
+      aria-current={active ? 'true' : undefined}
+      title={side.alive ? undefined : `${army.name} has been defeated`}
     >
-      <Portrait sprite={army.portrait} ramp={army.ramp} size={40} />
-      <div className="army-card-body">
-        <div className="army-card-row">
-          <strong className="army-card-name">{army.name}</strong>
-          {player.controller === 'ai' && (
-            <Icon name="computer" label="Computer" className="army-card-cpu" />
-          )}
-          <span className="army-card-commander">{army.commanderName}</span>
-          <span className="day-chip" title="Day">
-            <Icon name="day" />
-            Day {state.day}
+      <th scope="row" title={`${army.name}, ${army.commanderName}`}>
+        <span className="side-who">
+          <Portrait sprite={army.portrait} ramp={army.ramp} size={30} />
+          <span className="side-names">
+            <span className="side-army">
+              {army.name}
+              {side.controller === 'ai' && <Icon name="computer" label="Computer" />}
+            </span>
+            <span className="side-commander">{army.commanderName}</span>
           </span>
-        </div>
-        <div className="army-card-row">
-          <span className="stat funds" title="Funds">
-            <Icon name="funds" />
-            <span className="stat-value">{player.funds.toLocaleString()}</span>
-          </span>
+        </span>
+      </th>
+      <td
+        className="side-funds"
+        title={`Funds: ${stats.funds.toLocaleString()}, income ${stats.income.toLocaleString()} a day`}
+      >
+        <Icon name="funds" />
+        <span className="visually-hidden">Funds</span>
+        <strong>{stats.funds.toLocaleString()}</strong>
+        <span className="side-income">+{stats.income.toLocaleString()}</span>
+      </td>
+      <td className="side-count" title={`Properties: ${stats.properties}`}>
+        <Icon name="capture" ramp={army.ramp} />
+        <span className="visually-hidden">Properties</span>
+        {stats.properties}
+      </td>
+      <td className="side-count" title={`Units: ${stats.units}`}>
+        <Icon name="units" ramp={army.ramp} />
+        <span className="visually-hidden">Units</span>
+        {stats.units}
+      </td>
+      <td className="side-power">
+        {active ? (
           <PowerStatus state={state} canOrder={canOrder} />
-        </div>
-      </div>
-    </section>
+        ) : (
+          <PowerGauge state={state} player={army.seat} />
+        )}
+      </td>
+    </tr>
   );
 }
 
-/** The other sides still in the game, each with their power meter. */
-function Rivals({ state }: { state: GameState }) {
-  const armies = armiesOf(ruleset, state).filter(
-    (army) => army.seat !== state.activePlayer && state.players[army.seat]!.alive,
-  );
-  if (armies.length === 0) return null;
+/**
+ * Every side in one card, the side to move highlighted, beside the day: each
+ * side's commander, funds and income, properties, units and power meter.
+ */
+function SidesCard({ state, canOrder }: { state: GameState; canOrder: boolean }) {
+  const armies = armiesOf(ruleset, state);
+  const toMove = armies[state.activePlayer]!;
   return (
-    <ul className="rivals" aria-label="Other sides">
-      {armies.map((army) => (
-        <li
-          key={army.seat}
-          className="hud-panel rival"
-          style={armyStyle(army.color)}
-          title={`${army.commanderName}, ${army.name}`}
-        >
-          <Portrait
-            sprite={army.portrait}
-            ramp={army.ramp}
-            size={28}
-            label={`${army.commanderName}, ${army.name}`}
-          />
-          <PowerGauge state={state} player={army.seat} compact />
-        </li>
-      ))}
-    </ul>
+    <section
+      className="hud-panel sides-card"
+      aria-label={`Day ${state.day}, ${toMove.name} to move`}
+    >
+      <div className="day-badge" aria-hidden="true">
+        <Icon name="day" />
+        <span className="day-label">Day</span>
+        <span className="day-number">{state.day}</span>
+      </div>
+      <table className="sides">
+        <tbody>
+          {armies.map((army) => (
+            <SideRow key={army.seat} state={state} army={army} canOrder={canOrder} />
+          ))}
+        </tbody>
+      </table>
+    </section>
   );
 }
 
@@ -189,8 +213,8 @@ function Toolbar({ canOrder }: { canOrder: boolean }) {
 }
 
 /**
- * The HUD along the top of the board: the side to move, the other sides, a
- * hint for the current step, and the game controls. Its height is reported as
+ * The HUD along the top of the board: every side with the one to move
+ * highlighted, a hint for the current step, and the game controls. Its height is reported as
  * the board's top inset, so the map is never scrolled under it.
  */
 export function CommandBar() {
@@ -216,8 +240,7 @@ export function CommandBar() {
   return (
     <header ref={ref} className="hud-top">
       <div className="hud-sides">
-        <ArmyCard state={state} canOrder={canOrder} />
-        <Rivals state={state} />
+        <SidesCard state={state} canOrder={canOrder} />
       </div>
       <Hint state={state} />
       <Toolbar canOrder={canOrder} />
