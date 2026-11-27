@@ -10,7 +10,7 @@ import {
   type TileIndex,
   type UnitId,
 } from '@tactics/engine';
-import { NEUTRAL_VARIANT, TEAM_RAMPS } from '@tactics/sprites';
+import { NEUTRAL_VARIANT, TEAM_RAMPS, type TeamRamp } from '@tactics/sprites';
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { armiesOf } from '../session/armies';
 import { ruleset } from '../session/game';
@@ -19,7 +19,7 @@ import { armyStyle } from './armyStyle';
 import { useGameState } from './hooks';
 import { intelSide, tileBox, type Side } from './hudLayout';
 import type { IconName } from './icons';
-import { shownUnit } from './intel';
+import { coverOf, fullHpCover, levelOf, shownUnit } from './intel';
 import { terrainArt, unitArt } from './spriteArt';
 import { Icon, SpriteSvg } from './SpriteSvg';
 
@@ -27,26 +27,79 @@ import { Icon, SpriteSvg } from './SpriteSvg';
 const MAX_STARS = 4;
 /** Distance from the panel to the board's edges, in CSS pixels. */
 const MARGIN = 8;
-/** At or below this fraction of its maximum, a supply or HP value is shown as low. */
-const LOW_FRACTION = 0.3;
+/** A gauge with at most this many units is drawn as separate segments. */
+const MAX_SEGMENTS = 10;
 
-interface StatProps {
+interface GaugeProps {
+  /** Which stat, for its colour: `hp` shades by level, the others have their own. */
+  readonly kind: 'hp' | 'fuel' | 'ammo' | 'capture';
   readonly icon: IconName;
+  /** Team colours for the icon, if it has team-coloured parts. */
+  readonly ramp?: TeamRamp | undefined;
   readonly label: string;
-  readonly title?: string | undefined;
-  readonly low?: boolean | undefined;
+  readonly value: number;
+  readonly max: number;
+  /** Units at the top of the gauge that will be used up by the next turn, shown faded. */
+  readonly spend?: number | undefined;
+  readonly title: string;
   readonly children: ReactNode;
 }
 
-/** One stat: an icon naming it, and its value. */
-function Stat({ icon, label, title, low, children }: StatProps) {
+/** A stat as an icon, a gauge filled to its level, and its value. */
+function Gauge({ kind, icon, ramp, label, value, max, spend = 0, title, children }: GaugeProps) {
+  const level = levelOf(value, max);
+  const segmented = max <= MAX_SEGMENTS;
+  const used = Math.min(spend, value);
   return (
-    <div className={low ? 'intel-stat low' : 'intel-stat'} title={title ?? label}>
-      <dt>
-        <Icon name={icon} />
-        <span className="visually-hidden">{label}</span>
-      </dt>
-      <dd>{children}</dd>
+    <div className={`gauge-row ${kind} ${level}`} title={title}>
+      <Icon name={icon} ramp={ramp} />
+      <span
+        className={segmented ? 'gauge segmented' : 'gauge'}
+        role="meter"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={max}
+        aria-valuenow={value}
+      >
+        {segmented ? (
+          Array.from({ length: max }, (_unused, i) => (
+            <span
+              key={i}
+              className={i >= value ? 'seg' : i >= value - used ? 'seg on spend' : 'seg on'}
+            />
+          ))
+        ) : (
+          <>
+            <span className="gauge-fill" style={{ width: `${(value * 100) / max}%` }} />
+            {used > 0 && (
+              <span
+                className="gauge-spend"
+                style={{
+                  left: `${((value - used) * 100) / max}%`,
+                  width: `${(used * 100) / max}%`,
+                }}
+              />
+            )}
+          </>
+        )}
+      </span>
+      <span className="gauge-value">{children}</span>
+    </div>
+  );
+}
+
+/** Defence stars as icons, filled up to `stars`, with what they are worth. */
+function DefenceRow({ stars, percent, title }: { stars: number; percent: number; title: string }) {
+  const shown = Math.max(MAX_STARS, stars);
+  return (
+    <div className="gauge-row defence" title={title}>
+      <Icon name="defence" />
+      <span className="stars" role="img" aria-label={`Defence: ${stars} of ${shown} stars`}>
+        {Array.from({ length: shown }, (_unused, i) => (
+          <Icon key={i} name={i < stars ? 'star' : 'starEmpty'} />
+        ))}
+      </span>
+      <span className="gauge-value">{percent > 0 ? `−${percent}%` : '0%'}</span>
     </div>
   );
 }
@@ -69,19 +122,21 @@ function Modified({ value, base, raised }: ModifiedProps) {
   );
 }
 
-function UnitCard({ state, id }: { state: GameState; id: UnitId }) {
+function UnitCard({ state, id, tile }: { state: GameState; id: UnitId; tile: TileIndex }) {
   const unit = state.units[id]!;
   const def = ruleset.units[unit.type]!;
   const army = armiesOf(ruleset, state)[unit.owner]!;
   const pips = hpPips(ruleset, unit.hp);
+  const fullPips = maxPips(ruleset);
   const dailyFuel = unit.dived ? def.divedFuelPerDay : def.fuelPerDay;
   const move = movePointsOf(ruleset, state, unit.owner, unit.type);
   const maxRange = maxRangeOf(ruleset, state, unit.owner, unit.type);
   const range = (max: number) => (def.minRange === max ? `${max}` : `${def.minRange}–${max}`);
   const done = unit.moved && unit.owner === state.activePlayer;
   const cargo = unit.cargo.map((cargoId) => state.units[cargoId]!);
+  const cover = coverOf(ruleset, state, unit, tile);
   return (
-    <section className="hud-panel intel-card" style={armyStyle(army.color)}>
+    <section className="hud-panel intel-card unit-card" style={armyStyle(army.color)}>
       <header className="intel-head">
         <span className="intel-thumb">
           <SpriteSvg sprite={unitArt(ruleset, unit.type)} ramp={army.ramp} size={36} />
@@ -95,61 +150,94 @@ function UnitCard({ state, id }: { state: GameState; id: UnitId }) {
           {done && <Icon name="done" label="Has acted this turn" />}
         </span>
       </header>
-      <dl className="intel-stats">
-        <Stat icon="hp" label="HP" low={pips <= maxPips(ruleset) * LOW_FRACTION}>
+      <div className="gauges">
+        <Gauge
+          kind="hp"
+          icon="hp"
+          label="HP"
+          value={pips}
+          max={fullPips}
+          title={`HP: ${pips} of ${fullPips}`}
+        >
           {pips}
-        </Stat>
-        <Stat
+          <span className="of">/{fullPips}</span>
+        </Gauge>
+        <Gauge
+          kind="fuel"
           icon="fuel"
           label="Fuel"
-          title={dailyFuel > 0 ? `Fuel, uses ${dailyFuel} a day` : 'Fuel'}
-          low={unit.fuel <= def.maxFuel * LOW_FRACTION}
+          value={unit.fuel}
+          max={def.maxFuel}
+          spend={dailyFuel}
+          title={
+            dailyFuel > 0
+              ? `Fuel: ${unit.fuel} of ${def.maxFuel}, uses ${dailyFuel} a day${unit.dived ? ' while dived' : ''}`
+              : `Fuel: ${unit.fuel} of ${def.maxFuel}`
+          }
         >
           {unit.fuel}
           <span className="of">/{def.maxFuel}</span>
-        </Stat>
+        </Gauge>
         {def.maxAmmo > 0 && (
-          <Stat icon="ammo" label="Ammo" low={unit.ammo <= def.maxAmmo * LOW_FRACTION}>
+          <Gauge
+            kind="ammo"
+            icon="ammo"
+            label="Ammo"
+            value={unit.ammo}
+            max={def.maxAmmo}
+            title={`Ammo: ${unit.ammo} of ${def.maxAmmo}`}
+          >
             {unit.ammo}
             <span className="of">/{def.maxAmmo}</span>
-          </Stat>
+          </Gauge>
         )}
-        <Stat icon="move" label="Move">
+        {def.ignoresTerrainDefence ? (
+          <div className="gauge-row defence" title="Aircraft take no cover from terrain">
+            <Icon name="defence" />
+            <span className="no-cover">No terrain cover</span>
+            <span className="gauge-value">0%</span>
+          </div>
+        ) : (
+          <DefenceRow
+            stars={cover.stars}
+            percent={cover.percent}
+            title={`Cover here: ${cover.stars} stars at ${pips} HP, ${cover.percent}% less damage`}
+          />
+        )}
+      </div>
+      <div className="intel-notes">
+        <span className="intel-chip" title="Move">
+          <Icon name="move" label="Move" />
           <Modified
             value={String(move)}
             base={String(def.movePoints)}
             raised={move > def.movePoints}
           />
-        </Stat>
+        </span>
         {def.maxRange > 0 && (
-          <Stat icon="range" label="Range">
+          <span className="intel-chip" title="Range">
+            <Icon name="range" label="Range" />
             <Modified
               value={range(maxRange)}
               base={range(def.maxRange)}
               raised={maxRange > def.maxRange}
             />
-          </Stat>
+          </span>
         )}
-      </dl>
-      {(cargo.length > 0 || def.ignoresTerrainDefence) && (
-        <div className="intel-notes">
-          {cargo.length > 0 && (
-            <span className="intel-cargo" title="Carrying">
-              <Icon name="load" label="Carrying" />
-              {cargo.map((carried) => (
-                <SpriteSvg
-                  key={carried.id}
-                  sprite={unitArt(ruleset, carried.type)}
-                  ramp={army.ramp}
-                  size={22}
-                  label={ruleset.units[carried.type]!.name}
-                />
-              ))}
-            </span>
-          )}
-          {def.ignoresTerrainDefence && <span className="intel-chip">No cover</span>}
-        </div>
-      )}
+        {cargo.length > 0 && (
+          <span className="intel-chip intel-cargo" title="Carrying">
+            <Icon name="load" label="Carrying" />
+            {cargo.map((carried) => (
+              <SpriteSvg
+                key={carried.id}
+                sprite={unitArt(ruleset, carried.type)}
+                ramp={army.ramp}
+                label={ruleset.units[carried.type]!.name}
+              />
+            ))}
+          </span>
+        )}
+      </div>
     </section>
   );
 }
@@ -162,10 +250,10 @@ function TileCard({ state, tile }: { state: GameState; tile: TileIndex }) {
   const ramp = army?.ramp ?? TEAM_RAMPS[NEUTRAL_VARIANT]!;
   const capture = state.capture[tile]!;
   const capturePoints = ruleset.rules.capturePoints;
-  const stars = Math.max(MAX_STARS, terrain.defence);
+  const fullCover = fullHpCover(ruleset, terrain.defence);
   return (
     <section
-      className="hud-panel intel-card"
+      className="hud-panel intel-card tile-card"
       style={army === undefined ? undefined : armyStyle(army.color)}
     >
       <header className="intel-head">
@@ -177,28 +265,27 @@ function TileCard({ state, tile }: { state: GameState; tile: TileIndex }) {
           {terrain.isProperty && <span className="intel-owner">{army?.name ?? 'Neutral'}</span>}
         </div>
       </header>
-      <div
-        className="intel-stars"
-        role="img"
-        aria-label={`Defence: ${terrain.defence} of ${stars} stars`}
-        title="Defence"
-      >
-        {Array.from({ length: stars }, (_unused, i) => (
-          <Icon key={i} name={i < terrain.defence ? 'star' : 'starEmpty'} />
-        ))}
+      <div className="gauges">
+        <DefenceRow
+          stars={terrain.defence}
+          percent={fullCover}
+          title={`Defence: ${terrain.defence} stars, ${fullCover}% less damage to a unit at full HP`}
+        />
+        {terrain.isProperty && (
+          <Gauge
+            kind="capture"
+            icon="capture"
+            ramp={ramp}
+            label="Capture"
+            value={capture}
+            max={capturePoints}
+            title={`Capture: ${capture} of ${capturePoints} points left`}
+          >
+            {capture}
+            <span className="of">/{capturePoints}</span>
+          </Gauge>
+        )}
       </div>
-      {terrain.isProperty && (
-        <div className="intel-capture" title={`Capture: ${capture} of ${capturePoints} left`}>
-          <Icon name="capture" ramp={ramp} label="Capture" />
-          <span className="capture-track">
-            <span
-              className="capture-fill"
-              style={{ width: `${(capture * 100) / capturePoints}%` }}
-            />
-          </span>
-          <strong>{capture}</strong>
-        </div>
-      )}
     </section>
   );
 }
@@ -237,7 +324,7 @@ export function IntelPanel() {
   if (!onMap) return null;
   return (
     <aside ref={ref} className={`hud-intel ${side}`} aria-label="Under the cursor">
-      {unit !== NO_UNIT && <UnitCard state={state} id={unit} />}
+      {unit !== NO_UNIT && <UnitCard state={state} id={unit} tile={cursor} />}
       <TileCard state={state} tile={cursor} />
     </aside>
   );

@@ -494,7 +494,6 @@ kbd {
 }
 
 .intel-card {
-  width: 184px;
   padding: 8px 10px 9px;
   border-top: 3px solid var(--army, var(--border));
 }
@@ -551,120 +550,180 @@ kbd {
   height: 16px;
 }
 
-.intel-stats {
+.unit-card {
+  width: 214px;
+}
+
+.tile-card {
+  width: 196px;
+}
+
+/* Stats as gauges: icon, gauge filled to the level, value. */
+.gauges {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.gauge-row {
+  --fill: var(--good);
   display: grid;
-  grid-template-columns: repeat(3, auto);
-  gap: 5px 8px;
-  justify-content: start;
-  margin: 8px 0 0;
-}
-
-.intel-stat {
-  display: flex;
+  grid-template-columns: 17px 1fr 46px;
   align-items: center;
-  gap: 4px;
-  white-space: nowrap;
+  gap: 7px;
+  font-variant-numeric: tabular-nums;
 }
 
-.intel-stat dt {
+.gauge-row > .sprite {
+  width: 17px;
+  height: 17px;
+}
+
+.gauge-row.hp.mid {
+  --fill: var(--accent);
+}
+
+.gauge-row.fuel {
+  --fill: #e8a33a;
+}
+
+.gauge-row.ammo {
+  --fill: #b4c3d8;
+}
+
+.gauge-row.capture {
+  --fill: var(--army, var(--muted));
+}
+
+.gauge-row.low:not(.capture) {
+  --fill: var(--danger);
+}
+
+.gauge {
+  position: relative;
   display: flex;
+  gap: 2px;
+  height: 9px;
+  overflow: hidden;
+  background: rgb(0 0 0 / 40%);
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 6%);
 }
 
-.intel-stat .sprite {
+.gauge.segmented {
+  background: none;
+  box-shadow: none;
+}
+
+.seg {
+  flex: 1;
+  background: rgb(255 255 255 / 10%);
+  border-radius: 2px;
+}
+
+.seg.on {
+  background: var(--fill);
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 22%);
+}
+
+.gauge-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--fill);
+  border-radius: inherit;
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 22%);
+}
+
+/* What the next turn will use up, shown as a faded stripe at the top of the level. */
+.gauge-spend,
+.seg.on.spend {
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--fill) 55%, transparent) 0 3px,
+    rgb(0 0 0 / 35%) 3px 5px
+  );
+}
+
+.gauge-spend {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.gauge-value {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.gauge-row.low:not(.capture) .gauge-value {
+  color: var(--danger);
+}
+
+.gauge-value .of {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.stars .sprite {
   width: 15px;
   height: 15px;
 }
 
-.intel-stat dd {
-  margin: 0;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.intel-stat .of {
+.no-cover {
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.intel-stat.low dd {
-  color: var(--danger);
-}
-
-.intel-stat .raised {
-  color: var(--good);
-}
-
-.intel-stat .lowered {
-  color: var(--danger);
+  font-size: 12px;
 }
 
 .intel-notes {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  margin-top: 7px;
-}
-
-.intel-cargo {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.intel-cargo .sprite:first-child {
-  width: 15px;
-  height: 15px;
-  margin-right: 2px;
-}
-
-.intel-chip {
-  padding: 0 7px;
-  font-size: 11px;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-}
-
-.intel-stars {
-  display: flex;
-  gap: 2px;
+  gap: 5px;
   margin-top: 8px;
 }
 
-.intel-stars .sprite {
-  width: 15px;
-  height: 15px;
-}
-
-.intel-capture {
-  display: flex;
+.intel-chip {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 6px;
+  gap: 4px;
+  padding: 1px 8px 1px 5px;
+  font-size: 13px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  background: rgb(255 255 255 / 6%);
+  border-radius: 999px;
 }
 
-.intel-capture .sprite {
+.intel-chip .sprite {
   width: 16px;
   height: 16px;
 }
 
-.capture-track {
-  position: relative;
-  flex: 1;
-  height: 6px;
-  overflow: hidden;
-  background: rgb(0 0 0 / 40%);
-  border-radius: 999px;
+.intel-chip .of {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
 }
 
-.capture-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: var(--army, var(--muted));
-  border-radius: inherit;
+.intel-chip .raised {
+  color: var(--good);
+}
+
+.intel-chip .lowered {
+  color: var(--danger);
+}
+
+.intel-cargo .sprite:not(:first-child) {
+  width: 20px;
+  height: 20px;
 }
 
 .visually-hidden {

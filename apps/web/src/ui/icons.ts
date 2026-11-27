@@ -10,6 +10,7 @@ export const ICON_NAMES = [
   'close',
   'computer',
   'day',
+  'defence',
   'delete',
   'dive',
   'done',
