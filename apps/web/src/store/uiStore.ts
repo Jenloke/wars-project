@@ -1,6 +1,6 @@
 import { NO_TILE, NO_UNIT, type TileIndex, type UnitId, type UnitOptions } from '@tactics/engine';
 import { create } from 'zustand';
-import type { Camera, Viewport } from '../render/camera';
+import { NO_INSETS, type Camera, type Insets, type Viewport } from '../render/camera';
 
 /**
  * Where the player is in the select -> move -> act flow.
@@ -41,6 +41,8 @@ export interface UiState {
   readonly dialog: DialogKind;
   readonly camera: Camera;
   readonly viewport: Viewport;
+  /** Edges of the board covered by the HUD, in CSS pixels. */
+  readonly hudInsets: Insets;
 }
 
 export const IDLE_SELECTION = {
@@ -62,6 +64,7 @@ export const useUiStore = create<UiState>(() => ({
   dialog: 'saves',
   camera: { x: 0, y: 0, zoom: 1 },
   viewport: { width: 1, height: 1, dpr: 1 },
+  hudInsets: NO_INSETS,
 }));
 
 /** True for modes where a DOM menu has keyboard focus. */

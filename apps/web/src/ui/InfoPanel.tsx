@@ -14,8 +14,6 @@ import { armiesOf } from '../session/armies';
 import { ruleset } from '../session/game';
 import { useUiStore } from '../store/uiStore';
 import { useGameState } from './hooks';
-import { Portrait } from './Portrait';
-import { PowerGauge } from './PowerGauge';
 
 const MAX_STARS = 4;
 
@@ -179,54 +177,17 @@ function DamagePreview({ state }: { state: GameState }) {
   );
 }
 
-/** Every side still in the game: its commander and how charged their power is. */
-function ArmiesInfo({ state }: { state: GameState }) {
-  const armies = armiesOf(ruleset, state);
-  return (
-    <section className="info-card armies-card" aria-label="Commanders">
-      <ul>
-        {armies.map((army) => {
-          const side = state.players[army.seat]!;
-          if (!side.alive) return null;
-          return (
-            <li
-              key={army.seat}
-              className={army.seat === state.activePlayer ? 'army active' : 'army'}
-              title={`${army.commanderName}, ${army.name}`}
-            >
-              <Portrait sprite={army.portrait} ramp={army.ramp} size={32} />
-              <span className="army-text">
-                <span className="army-name" style={{ color: army.color }}>
-                  {army.commanderName}
-                </span>
-                <PowerGauge state={state} player={army.seat} />
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </section>
-  );
-}
-
-/** Terrain and unit details for the tile under the cursor, and every side's commander. */
+/** Terrain and unit details for the tile under the cursor. */
 export function InfoPanel() {
   const state = useGameState();
   const cursor = useUiStore((ui) => ui.cursor);
   const mode = useUiStore((ui) => ui.mode);
-  if (cursor === NO_TILE || cursor >= state.terrain.length) {
-    return (
-      <aside className="info-panel">
-        <ArmiesInfo state={state} />
-      </aside>
-    );
-  }
+  if (cursor === NO_TILE || cursor >= state.terrain.length) return null;
   return (
     <aside className="info-panel">
       {mode === 'targeting' && <DamagePreview state={state} />}
       <UnitInfo state={state} tile={cursor} />
       <TerrainInfo state={state} tile={cursor} />
-      <ArmiesInfo state={state} />
     </aside>
   );
 }
